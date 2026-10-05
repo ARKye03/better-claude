@@ -1,0 +1,41 @@
+{
+  "name": "after-for-claude-code",
+  "version": "0.2.0",
+  "description": "A real prompt queue for Claude Code, as a mod: /after <task> runs it after the current task, without steering.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Miguel Ángel Durán (midudev)",
+  "homepage": "https://github.com/midudev/after-for-claude-code#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/midudev/after-for-claude-code.git"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "claude-code-mod",
+    "queue",
+    "prompts",
+    "agents"
+  ],
+  "files": [
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    "hooks",
+    "src",
+    "types",
+    "tsconfig.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\" && claude plugin test .",
+    "test:node": "node --test \"test/*.test.js\"",
+    "test:mod": "claude plugin test .",
+    "test:watch": "node --test --watch \"test/*.test.js\"",
+    "typecheck": "npx -y -p typescript@5 tsc -p .",
+    "validate": "claude plugin validate .",
+    "eval": "node scripts/eval-haiku.js"
+  }
+}

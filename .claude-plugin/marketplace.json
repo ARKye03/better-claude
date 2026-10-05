@@ -1,0 +1,19 @@
+{
+  "name": "after-for-claude-code",
+  "owner": {
+    "name": "Miguel Ángel Durán (midudev)",
+    "url": "https://github.com/midudev"
+  },
+  "metadata": {
+    "description": "After: a prompt queue for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "after",
+      "source": "./",
+      "description": "Queue prompts to run after the current task, without steering it.",
+      "version": "0.2.0",
+      "category": "productivity"
+    }
+  ]
+}
