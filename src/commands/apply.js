@@ -17,9 +17,15 @@ const fail = (text) => ({ kind: 'error', text })
  * - removed: tasks that left the queue
  * - kick: whether the queue should start if Claude is idle
  * - view: 'queue' | 'help' | 'watch'
+ * - action: the intent behind a change that is not an operation ('pause' | 'resume' | 'undo')
+ * - changes: what each operation did, for the card: { type: 'add', id, where, anchor? }
+ *   | { type: 'remove' | 'clear', count } | { type: 'move', id, from } | { type: 'edit', id }
+ * - before: the pending tasks before the change, so removed rows show where they were
  */
-const outcome = (state, message, extra = {}) =>
-  ({ state, message, marks: {}, removed: [], kick: false, view: 'queue', via: null, note: '', ...extra })
+const outcome = (state, message, extra = {}) => ({
+  state, message, marks: {}, removed: [], kick: false, view: 'queue', via: null, note: '',
+  action: null, changes: [], before: state.items, ...extra
+})
 
 function idAt (state, position) {
   const item = queue.itemAt(state, position)
@@ -77,6 +83,7 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
   const lines = []
   const marks = {}
   const removed = []
+  const changes = []
   let kick = false
 
   try {
@@ -87,6 +94,7 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
           next = result.state
           marks[result.item.id] = 'new'
           kick = true
+          changes.push({ type: 'add', id: result.item.id, where: op.where.kind, anchor: op.where.id })
           lines.push(describeAdd(next, result.item, op.where, state))
           break
         }
@@ -94,15 +102,18 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
           const result = queue.removeItems(next, op.ids)
           next = result.state
           removed.push(...result.removed)
+          changes.push({ type: 'remove', count: result.removed.length })
           lines.push(result.removed.length === 1
             ? `Removed ${quote(result.removed[0].text)}`
             : `Removed ${plural(result.removed.length, 'task')}`)
           break
         }
         case 'move': {
+          const from = queue.positionOf(next, op.id)
           const result = queue.moveItem(next, op.id, op.where)
           next = result.state
           marks[op.id] = 'moved'
+          changes.push({ type: 'move', id: op.id, from })
           lines.push(`Moved ${quote(result.item.text)} to #${queue.positionOf(next, op.id)}`)
           break
         }
@@ -110,6 +121,7 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
           const result = queue.editItem(next, op.id, op.text)
           next = result.state
           marks[op.id] = 'edited'
+          changes.push({ type: 'edit', id: op.id })
           lines.push(`Edited #${queue.positionOf(next, op.id)} · ${shorten(result.item.text)}`)
           break
         }
@@ -117,6 +129,7 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
           const result = queue.clearItems(next)
           next = result.state
           removed.push(...result.removed)
+          changes.push({ type: 'clear', count: result.removed.length })
           lines.push(`Cleared ${plural(result.removed.length, 'task')}`)
           break
         }
@@ -130,7 +143,7 @@ export function applyOps (state, ops, { now = Date.now(), via = null, note = '' 
   }
 
   if (removed.length > 0) lines.push(`/after undo to bring ${removed.length === 1 ? 'it' : 'them'} back`)
-  return outcome(queue.withUndo(state, next), ok(lines.join('\n')), { marks, removed, kick, via, note })
+  return outcome(queue.withUndo(state, next), ok(lines.join('\n')), { marks, removed, kick, via, note, changes, before: state.items })
 }
 
 /** Applies a deterministic intent from parseArgs (everything except `smart`). */
@@ -158,17 +171,17 @@ export function applyIntent (state, intent, { now = Date.now() } = {}) {
       case 'pause':
         if (state.paused) return outcome(state, info('Already paused · /after resume to continue'))
         return outcome(queue.withUndo(state, queue.setPaused(state, true)),
-          ok('Paused · queued tasks will wait until /after resume'))
+          ok('Paused · queued tasks will wait until /after resume'), { action: 'pause' })
       case 'resume':
         if (!state.paused) {
           return outcome(state, info(state.items.length ? 'Running' : 'Nothing queued'), { kick: state.items.length > 0 })
         }
-        return outcome(queue.withUndo(state, queue.setPaused(state, false)), ok('Resumed'), { kick: true })
+        return outcome(queue.withUndo(state, queue.setPaused(state, false)), ok('Resumed'), { kick: true, action: 'resume' })
 
       case 'undo': {
         const result = queue.undo(state)
         return result.ok
-          ? outcome(result.state, ok('Undid the last change'))
+          ? outcome(result.state, ok('Undid the last change'), { action: 'undo' })
           : outcome(state, info('Nothing to undo'))
       }
       default:

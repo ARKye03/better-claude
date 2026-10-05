@@ -75,6 +75,7 @@ function world (on: On) {
     panes.push(e)
     return { value: { isPlaced: true } }
   })
+  on('ui.focus', () => ({}))
   // What the engine draws where the mod draws nothing
   on('ui.render', ($, e) => {
     const { Box } = $.ui.resolve(e)
@@ -103,6 +104,14 @@ const turnEnd = ($: Engine, reason: 'answer' | 'aborted' = 'answer') =>
   $.turn.complete({ answer: '', durationMs: 1, isAborted: reason === 'aborted', turnId: 't1', reason })
 
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
+
+/** Draws what a command answered, as the transcript does under its echo. */
+const mountCard = ($: Engine, text: string | undefined, command = 'after') => $.ui.mount({
+  plugin: 'after',
+  surface: 'terminal',
+  component: 'CommandOutput',
+  props: { command, args: '', text: `after: ${text}`, isErrored: false }
+})
 
 test('registers /after and /before when the session starts', async ($, on) => {
   const w = world(on)
@@ -158,14 +167,35 @@ test('queues while Claude works and starts the task when the turn ends', async (
   expect(w.queued()).toEqual(['bump the version'])
 })
 
-test('/before goes to the front, and the command prints instead of answering', async ($, on) => {
+test('/before goes to the front, and answers with a card the model never reads', async ($, on) => {
   const w = world(on)
   await turnStart($)
   await after($, 'second')
   const answer = await after($, 'first', 'before')
-  expect(answer.text).toBeUndefined()
   expect(w.queued()).toEqual(['first', 'second'])
-  expect(w.logs.at(-1)).toMatch(/Queued #1 · first/)
+  // The transcript keeps (and the model reads) only a reference to the card
+  expect(answer.text).toMatch(/^#[0-9a-z]+-[0-9a-z]+$/)
+  const card = await mountCard($, answer.text, 'before')
+  expect(await card.find({ type: 'Text', text: / Queued #1 · next up/ })).toBeDefined()
+  expect(await card.find({ type: 'Text', text: /first/ })).toBeDefined()
+  expect(await card.find({ type: 'Text', text: ' After ' })).toBeDefined()
+  await card.unmount()
+})
+
+test('a resumed session draws its cards from the store', async ($, on) => {
+  const w = world(on)
+  w.store['card:zz-1'] = { tone: 'ok', icon: '✓', title: 'Queued #2', rows: [] }
+  const card = await mountCard($, '#zz-1')
+  expect(await card.find({ type: 'Text', text: ' Queued #2' })).toBeDefined()
+  await card.unmount()
+  const other = await $.ui.mount({
+    plugin: 'after',
+    surface: 'terminal',
+    component: 'CommandOutput',
+    props: { command: 'cost', args: '', text: 'cost: #zz-1', isErrored: false }
+  })
+  expect(await other.find({ key: 'engine' })).toBeDefined()
+  await other.unmount()
 })
 
 test('Esc leaves the queue alone until a turn ends normally', async ($, on) => {
@@ -183,7 +213,15 @@ test('a task queued while Claude is idle starts right away', async ($, on) => {
   await after($, 'reply with exactly OK')
   await w.clock.settle()
   expect(w.prompts.map(prompt => prompt.text)).toEqual(['reply with exactly OK'])
-  expect(w.logs.at(-1)).toMatch(/Claude is idle · starting reply with exactly OK now/)
+})
+
+test('the card says a task starts at once when Claude is idle', async ($, on) => {
+  world(on)
+  const answer = await after($, 'reply with exactly OK')
+  const card = await mountCard($, answer.text)
+  expect(await card.find({ type: 'Text', text: ' Starting now' })).toBeDefined()
+  expect(await card.find({ type: 'Text', text: '← starting now' })).toBeDefined()
+  await card.unmount()
 })
 
 test('a paused queue holds its tasks', async ($, on) => {
@@ -204,10 +242,13 @@ test('plain language asks the model, and only when it may refer to the queue', a
   await after($, 'add tests for the parser')
   await after($, 'update the README')
   expect(w.model.calls).toBe(0)
-  await after($, 'quita lo del readme')
+  const answer = await after($, 'quita lo del readme')
   expect(w.model.calls).toBe(1)
   expect(w.queued()).toEqual(['add tests for the parser'])
-  expect(w.logs.at(-1)).toMatch(/✦ Haiku: the readme task/)
+  const card = await mountCard($, answer.text)
+  expect(await card.find({ type: 'Text', text: ' ✦ Haiku ' })).toBeDefined()
+  expect(await card.find({ type: 'Text', text: ' Removed 1 task' })).toBeDefined()
+  await card.unmount()
 })
 
 test('falls back to local matching when the model has no answer', async ($, on) => {
@@ -248,11 +289,33 @@ test('the band shows what comes next on every surface', async ($, on) => {
   await after($, 'write the docs')
   for (const surface of SURFACES) {
     const ui = await $.ui.mount({ plugin: 'after', surface, component: 'AbovePrompt', props: BAND })
-    expect(await ui.find({ type: 'Text', text: '1 task queued' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /next 1 write the docs/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: ' after ' })).toBeDefined()
+    // The spinner above already says Claude is working
+    expect(await ui.find({ type: 'Text', text: /working/ })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: 'write the docs' })).toBeDefined()
+    expect(await ui.find({ type: 'Button', key: 'view' })).toBeDefined()
     await ui.unmount()
   }
   expect(w.queued()).toEqual(['write the docs'])
+})
+
+test('the band says what is running, then what comes next, or that the queue is paused', async ($, on) => {
+  const w = world(on)
+  await turnStart($)
+  await after($, 'write the docs')
+  await after($, 'bump the version')
+  await turnEnd($)
+  await w.clock.settle()
+  const running = await $.ui.mount({ plugin: 'after', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await running.find({ type: 'Text', text: '▶ write the docs' })).toBeDefined()
+  expect(await running.find({ type: 'Text', text: 'then' })).toBeDefined()
+  await running.unmount()
+
+  await after($, 'pause')
+  const paused = await $.ui.mount({ plugin: 'after', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await paused.find({ type: 'Text', text: 'paused' })).toBeDefined()
+  expect(await paused.find({ type: 'Text', text: 'then' })).toBeUndefined()
+  await paused.unmount()
 })
 
 test('the band stays out of the way with an empty queue', async ($, on) => {
@@ -264,11 +327,13 @@ test('the band stays out of the way with an empty queue', async ($, on) => {
   await ui.unmount()
 })
 
-test('/after watch opens the pane', async ($, on) => {
+test('bare /after opens the queue to edit it, and prints nothing', async ($, on) => {
   const w = world(on)
+  const answer = await after($, '')
+  expect(w.panes).toEqual([expect.objectContaining({ id: 'after', focus: true, closeOnEscape: true })])
+  expect(answer.text).toBeUndefined()
   await after($, 'watch')
-  expect(w.panes).toEqual([expect.objectContaining({ id: 'after' })])
-  expect(w.logs.at(-1)).toMatch(/Opened the live view/)
+  expect(w.panes).toHaveLength(2)
 })
 
 test('the pane edits the queue on every surface that takes input', async ($, on) => {
@@ -281,21 +346,30 @@ test('the pane edits the queue on every surface that takes input', async ($, on)
     const ui = await $.ui.mount({ plugin: 'after', surface, component: 'Pane', requestId: 'after', props: PANE })
     const [first, second] = w.ids()
 
-    await ui.press({ key: `up-${second}` })
-    expect(w.queued()).toEqual(['second', 'first'])
+    // Enter on a task picks it and loads it into the input to rewrite it
+    await ui.press({ key: `row-${second}` })
+    await ui.input({ key: 'task', text: 'second, rewritten' })
+    expect(w.queued()).toEqual(['first', 'second, rewritten'])
 
-    await ui.press({ key: `rm-${first}` })
-    expect(w.queued()).toEqual(['second'])
+    // k and j move the picked task, d removes it
+    await ui.press({ key: 'up' })
+    expect(w.queued()).toEqual(['second, rewritten', 'first'])
+    await ui.press({ key: 'down' })
+    expect(w.queued()).toEqual(['first', 'second, rewritten'])
+
+    // The arrows pick: the focus ring on a task selects it
+    await $.ui.focus({ component: 'Pane', requestId: 'after', plugin: 'after', element: `row-${first}`, origin: { kind: 'person' } })
+    expect(await ui.find({ type: 'Text', text: '❯ ' })).toBeDefined()
+    await ui.press({ key: 'delete' })
+    expect(w.queued()).toEqual(['second, rewritten'])
 
     await ui.input({ key: 'task', text: 'third' })
-    expect(w.queued()).toEqual(['second', 'third'])
-
-    await ui.press({ key: `edit-${second}` })
-    await ui.input({ key: 'task', text: 'second, rewritten' })
     expect(w.queued()).toEqual(['second, rewritten', 'third'])
+    await ui.input({ key: 'task', text: 'rm 1' })
+    expect(w.queued()).toEqual(['third'])
 
     await ui.press({ key: 'undo' })
-    expect(w.queued()).toEqual(['second', 'third'])
+    expect(w.queued()).toEqual(['second, rewritten', 'third'])
     await ui.unmount()
   }
 })

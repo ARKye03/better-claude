@@ -48,6 +48,8 @@ declare module 'claude-code' {
       note: AfterNote | null
       draft: AfterDraft
       paneOpen: boolean
+      /** The task the pane's focus ring last rested on, by id. */
+      selected: number | null
     }
   }
 }

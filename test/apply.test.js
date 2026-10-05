@@ -81,7 +81,7 @@ describe('applyIntent', () => {
 
   test('views do not change the state', () => {
     const state = seed(['a'])
-    for (const [args, view] of [['', 'queue'], ['help', 'help'], ['watch', 'watch']]) {
+    for (const [args, view] of [['list', 'queue'], ['help', 'help'], ['', 'watch'], ['watch', 'watch']]) {
       const outcome = run(state, args)
       assert.equal(outcome.state, state)
       assert.equal(outcome.view, view)

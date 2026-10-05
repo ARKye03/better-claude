@@ -1,5 +1,6 @@
-import { defaultOps, needsSmart, resolveHeuristically, trimConnector } from './heuristics.js'
+import { defaultOps, needsSmart, resolveHeuristically, taskAfterReference, trimConnector } from './heuristics.js'
 import { SYSTEM, buildUserMessage, parseReply, parseResponse } from './protocol.js'
+import { normalize } from './text.js'
 
 /**
  * Builds the model-backed resolver from `complete({ system, prompt })`, any function that
@@ -28,10 +29,33 @@ const isDefaultAdd = (ops, command, text) =>
   ops.length === 1 && ops[0].type === 'add' && ops[0].text === text.trim() &&
   ops[0].where.kind === (command === 'before' ? 'start' : 'end')
 
-/** Relative adds should not start with the connector that followed the reference. */
-const tidy = (ops) => ops.map(op => op.type === 'add' && (op.where.kind === 'after' || op.where.kind === 'before')
-  ? { ...op, text: trimConnector(op.text) }
-  : op)
+/**
+ * A relative add's text should hold neither the words that point at its anchor nor the
+ * connector after them. When Haiku placed the task but kept the whole command as its text
+ * ("/before decirme de que va el proyecto ejecuta los tests"), the reference is still there.
+ */
+function tidy (ops, text, items) {
+  return ops.map(op => {
+    if (op.type !== 'add' || (op.where.kind !== 'after' && op.where.kind !== 'before')) return op
+    const anchor = items.find(item => item.id === op.where.id)
+    const isWhole = normalize(op.text) === normalize(text)
+    const task = (isWhole && anchor && taskAfterReference(op.text, anchor)) || op.text
+    return { ...op, text: trimConnector(task) }
+  })
+}
+
+/**
+ * Haiku may anchor a task to the queued one it resembles ("ejecuta otra vez los tests" next to
+ * the tests task) rather than the one the leading words point at. When the local split reads
+ * the same task the same way, its anchor is the literal one.
+ */
+function literalAnchor (ops, local) {
+  const [mine] = local.via === 'heuristics' ? local.ops : []
+  const [theirs] = ops
+  const agrees = ops.length === 1 && mine?.type === 'add' && theirs.type === 'add' &&
+    mine.text === theirs.text && mine.where.kind === theirs.where.kind
+  return agrees ? [{ ...theirs, where: mine.where }] : ops
+}
 
 /**
  * Turns natural language into queue operations.
@@ -51,5 +75,5 @@ export async function resolveSmart ({ command, text, items, started = [], resolv
     // trust the match ("remove the beta one" must never become a task)
     return local.via ? local : { ops: answer.ops, via: null }
   }
-  return { ...answer, ops: tidy(answer.ops), via: 'haiku' }
+  return { ...answer, ops: literalAnchor(tidy(answer.ops, text, items), local), via: 'haiku' }
 }

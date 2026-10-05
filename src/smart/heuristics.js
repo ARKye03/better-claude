@@ -142,6 +142,13 @@ function detectRelative (command, text, items) {
   }]
 }
 
+/**
+ * The task in "<words pointing at anchor> <task>" ("decirme de que va el proyecto ejecuta los
+ * tests" with "de que va el proyecto?" as the anchor), or null when the text does not start
+ * with a reference to it.
+ */
+export const taskAfterReference = (text, anchor) => detectRelative('after', text, [anchor])?.[0].text ?? null
+
 /** Best-effort resolution without any model. Falls back to a plain add. */
 export function resolveHeuristically ({ command, text, items, started = [] }) {
   if (items.length > 0) {

@@ -48,6 +48,29 @@ describe('resolveSmart', () => {
     assert.equal((await resolveSmart({ command: 'after', text: 'tests, then write docs', items, resolver })).ops[0].text, 'write docs')
   })
 
+  test('drops the reference Haiku leaves in the text of a relative add', async () => {
+    const queue = [{ id: 1, text: 'ejecuta los tests y dime si todo funciona ok' }, { id: 2, text: 'de que va el proyecto?' }]
+    const text = 'decirme de que va el proyecto ejecuta otra vez los tests'
+    const whole = async () => ({ ops: [{ type: 'add', text, where: { kind: 'before', id: 2 } }], note: '' })
+    const result = await resolveSmart({ command: 'before', text, items: queue, resolver: whole })
+    assert.deepEqual(result.ops, [{ type: 'add', text: 'ejecuta otra vez los tests', where: { kind: 'before', id: 2 } }])
+  })
+
+  test('anchors to the task the leading words point at, not the one the new task resembles', async () => {
+    const queue = [{ id: 1, text: 'ejecuta los tests y dime si todo funciona ok' }, { id: 2, text: 'de que va el proyecto?' }]
+    const text = 'decirme de que va el proyecto ejecuta otra vez los tests'
+    const resembling = async () => ({ ops: [{ type: 'add', text: 'ejecuta otra vez los tests', where: { kind: 'before', id: 1 } }], note: '' })
+    const result = await resolveSmart({ command: 'before', text, items: queue, resolver: resembling })
+    assert.deepEqual(result.ops, [{ type: 'add', text: 'ejecuta otra vez los tests', where: { kind: 'before', id: 2 } }])
+  })
+
+  test('keeps a relative add Haiku already trimmed, even if it looks like its anchor', async () => {
+    const queue = [{ id: 1, text: 'run the tests' }]
+    const trimmed = async () => ({ ops: [{ type: 'add', text: 'run the tests again and fix what fails', where: { kind: 'after', id: 1 } }], note: '' })
+    const result = await resolveSmart({ command: 'after', text: 'tests, run the tests again and fix what fails', items: queue, resolver: trimmed })
+    assert.equal(result.ops[0].text, 'run the tests again and fix what fails')
+  })
+
   test('falls back to heuristics when the model is unavailable or fails', async () => {
     for (const resolver of [null, async () => null, async () => { throw new Error('boom') }]) {
       const result = await resolveSmart({ command: 'after', text: 'remove adding tests', items, resolver })

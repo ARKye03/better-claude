@@ -5,13 +5,13 @@
 const PROMPT_RE = /^\s*\/(?:[\w.-]+:)?(after|before)(?:\s+([\s\S]*))?$/i
 
 const words = (...list) => new Set(list)
-const SHOW = words('list', 'ls', 'show', 'status', 'queue', 'view')
+const SHOW = words('list', 'ls', 'show', 'status', 'queue')
 const HELP = words('help', '-h', '--help', '?')
 const CLEAR = words('clear', 'reset', 'flush', 'empty')
 const PAUSE = words('pause', 'hold', 'stop')
 const RESUME = words('resume', 'go', 'start', 'unpause', 'play')
 const UNDO = words('undo')
-const WATCH = words('watch', 'tui', 'ui', 'live')
+const WATCH = words('watch', 'view', 'tui', 'ui', 'live', 'edit')
 const REMOVE = words('rm', 'remove', 'del', 'delete', 'drop')
 const EDIT = words('edit', 'set')
 const MOVE = words('mv', 'move')
@@ -72,7 +72,8 @@ function parseTarget (text) {
 /** Turns the text after /after or /before into an intent. */
 export function parseArgs (command, rawArgs = '') {
   const args = String(rawArgs).trim()
-  if (!args) return { type: 'show' }
+  // Bare /after opens the queue to edit it
+  if (!args) return { type: 'watch' }
 
   // "--" forces the rest to be queued literally, no interpretation at all
   if (args === '--' || args.startsWith('-- ')) {

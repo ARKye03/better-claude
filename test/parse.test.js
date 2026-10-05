@@ -37,8 +37,10 @@ describe('parseRefs', () => {
 
 describe('parseArgs', () => {
   const cases = [
-    ['', { type: 'show' }],
+    ['', { type: 'watch' }],
     ['list', { type: 'show' }],
+    ['view', { type: 'watch' }],
+    ['edit', { type: 'watch' }],
     ['help', { type: 'help' }],
     ['clear', { type: 'clear' }],
     ['pause', { type: 'pause' }],

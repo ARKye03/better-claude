@@ -40,6 +40,9 @@ function complete ({ system, prompt }) {
 
 const queue = (...texts) => texts.map((text, i) => ({ id: i + 1, text }))
 const Q = queue('add tests for the parser', 'update the README', 'deploy to staging')
+const ES = queue('ejecuta los tests y dime si todo funciona ok', 'de que va el proyecto?')
+const isTask = (ops, text, kind, id) => ops.length === 1 && ops[0].type === 'add' && ops[0].text === text &&
+  ops[0].where.kind === kind && ops[0].where.id === id
 
 // [command, text, items, started, expected (a function of the resolved ops)]
 const CASES = [
@@ -54,6 +57,11 @@ const CASES = [
   ['after', 'change the readme one to update the README and the CHANGELOG', Q, [], ops => ops[0]?.type === 'edit' && ops[0].id === 2 && /CHANGELOG/.test(ops[0].text)],
   ['after', 'remove the unused dependencies', Q, [], ops => ops[0]?.type === 'add' && ops[0].text === 'remove the unused dependencies'],
   ['after', 'write more tests for the lexer', Q, [], ops => ops[0]?.type === 'add' && ops[0].where.kind === 'end'],
+  // The words pointing at the anchor never end up in the task, comma or not
+  ['before', 'decirme de que va el proyecto ejecuta otra vez los tests', ES, [], ops => isTask(ops, 'ejecuta otra vez los tests', 'before', 2)],
+  ['before', 'decirme de que va el proyecto, ejecuta otra vez los tests', ES, [], ops => isTask(ops, 'ejecuta otra vez los tests', 'before', 2)],
+  ['after', 'antes de decirme de que va el proyecto ejecuta otra vez los tests', ES, [], ops => isTask(ops, 'ejecuta otra vez los tests', 'before', 2)],
+  ['after', 'cuando acabes los tests revisa el README', ES, [], ops => isTask(ops, 'revisa el README', 'after', 1)],
   ['after', 'remove the tests', queue('update the README'), [{ id: 9, text: 'add tests for the parser', status: 'running' }], ops => ops.length === 0]
 ]
 

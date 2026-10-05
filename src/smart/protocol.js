@@ -21,6 +21,9 @@ Examples, with the queue "1. reply with exactly ALPHA 2. reply with exactly BETA
 - "/after drop the second one" -> remove 2
 - "/after alpha, then write docs" -> add "write docs" after 1
 - "/before tests bump the version" -> add "bump the version" before 3
+- "/before añadir los tests corre el linter" -> add "corre el linter" before 3 ("añadir los tests" only points at task 3)
+- "/after decirme lo de beta, revisa los logs" -> add "revisa los logs" after 2
+- "/before beta, add more tests" -> add "add more tests" before 2 (the leading words point at task 2; the new task resembling task 3 does not matter)
 - "/after move tests first" -> move 3 to start
 - "/after remove the unused dependencies" -> add "remove the unused dependencies" at the end (no queued task is about dependencies)
 
@@ -28,6 +31,8 @@ Rules:
 - If the command refers to a task that already started or finished (listed separately, it can no longer be changed), return no operations and explain that in "note".
 - If nothing in the queue matches, the whole text is a new task, even when it starts with a verb like "remove" or "move".
 - Keep the user's wording and language for task text. Only strip the words that locate it in the queue, including connectors such as "then", "y luego" or a leading comma.
+- In a relative placement, the words that point at the anchor task are never part of the new task, even when they paraphrase it ("decirme de qué va el proyecto" for "de que va el proyecto?") and even with no comma: the task text starts where the new instruction starts, usually at its verb.
+- The anchor is the task the leading words point at, never a task the new task merely resembles. A relative "/before" goes right before that task, not at the start of the queue.
 - Never invent tasks and never drop details from the task text.
 - Use "note" for a very short, plain explanation of what you understood (same language as the user).`
 
