@@ -6,8 +6,8 @@
     "name": "Miguel Ángel Durán (midudev)",
     "url": "https://github.com/midudev"
   },
-  "homepage": "https://github.com/midudev/after-for-claude-code",
-  "repository": "https://github.com/midudev/after-for-claude-code",
+  "homepage": "https://github.com/midudev/better-claude",
+  "repository": "https://github.com/midudev/better-claude",
   "license": "MIT",
   "keywords": ["queue", "prompts", "workflow", "productivity", "mod"],
   "types": "./types/index.d.ts",

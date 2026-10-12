@@ -1,14 +1,14 @@
 {
-  "name": "after-for-claude-code",
+  "name": "better-claude",
   "version": "0.2.0",
   "description": "A real prompt queue for Claude Code, as a mod: /after <task> runs it after the current task, without steering.",
   "type": "module",
   "license": "MIT",
   "author": "Miguel Ángel Durán (midudev)",
-  "homepage": "https://github.com/midudev/after-for-claude-code#readme",
+  "homepage": "https://github.com/midudev/better-claude#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/midudev/after-for-claude-code.git"
+    "url": "git+https://github.com/midudev/better-claude.git"
   },
   "keywords": [
     "claude-code",

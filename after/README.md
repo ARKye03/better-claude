@@ -33,8 +33,8 @@ Rule of thumb:
 ## Install
 
 ```text
-/plugin marketplace add midudev/after-for-claude-code
-/plugin install after@after-for-claude-code
+/plugin marketplace add midudev/better-claude
+/plugin install after@better-claude
 ```
 
 Mods ship inside plugins, so that is all. Requires a Claude Code version with mods (2.1.289 or newer).

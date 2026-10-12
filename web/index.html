@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>better-claude · Claude Code plugins</title>
+  <meta name="description" content="Plugins and mods for Claude Code: After, a prompt queue, and Use Haiku, a _ prefix for Haiku turns.">
+  <style>
+    @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-latin.woff2") format("woff2"); font-display: swap; }
+    @font-face { font-family: "Geist Pixel"; src: url("fonts/geist-pixel-latin.woff2") format("woff2"); font-display: swap; }
+
+    :root {
+      --bg: #fafafa;
+      --fg: #111;
+      --muted: #666;
+      --line: #e4e4e4;
+      --code: #f0f0f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0c0c0c;
+        --fg: #ededed;
+        --muted: #9a9a9a;
+        --line: #2a2a2a;
+        --code: #171717;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0c0c0c;
+      --fg: #ededed;
+      --muted: #9a9a9a;
+      --line: #2a2a2a;
+      --code: #171717;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 15px/1.6 "Geist Mono", ui-monospace, Menlo, monospace;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 64px 16px; }
+    h1 { font: 400 28px/1.2 "Geist Pixel", "Geist Mono", monospace; margin: 0 0 8px; }
+    .lede { color: var(--muted); margin: 0 0 48px; }
+
+    .plugin { border-top: 1px solid var(--line); padding: 28px 0; }
+    .plugin h2 { font-size: 18px; margin: 0 0 4px; }
+    .plugin p { margin: 0 0 16px; }
+    pre {
+      background: var(--code);
+      padding: 12px 14px;
+      margin: 0 0 12px;
+      overflow-x: auto;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .links { font-size: 14px; }
+    a { color: inherit; text-underline-offset: 3px; }
+    .muted { color: var(--muted); }
+
+    footer {
+      border-top: 1px solid var(--line);
+      margin-top: 48px;
+      padding-top: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>better-claude</h1>
+    <p class="lede">Small plugins and mods by <a href="https://github.com/midudev">midudev</a>.</p>
+
+    <section class="plugin">
+      <h2>After</h2>
+      <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
+      <pre>/plugin install after@better-claude</pre>
+      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">Docs</a></p>
+    </section>
+
+    <section class="plugin">
+      <h2>Use Haiku</h2>
+      <p>Start a prompt with <code>_</code> and that turn runs on Haiku. Other prompts keep the session's model.</p>
+      <pre>❯ _summarize the last commit</pre>
+      <pre>/plugin install use-haiku@better-claude</pre>
+      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">Docs</a></p>
+    </section>
+
+    <footer>
+      <p>Add the marketplace first: <code>/plugin marketplace add midudev/better-claude</code></p>
+      <p>MIT © Miguel Ángel Durán (midudev)</p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -11,8 +11,8 @@ Claude gets `summarize the last commit`, without the `_`, and every model reques
 ## Install
 
 ```text
-/plugin marketplace add midudev/after-for-claude-code
-/plugin install use-haiku@after-for-claude-code
+/plugin marketplace add midudev/better-claude
+/plugin install use-haiku@better-claude
 ```
 
 Requires a Claude Code version with mods (2.1.289 or newer).

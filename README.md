@@ -1,6 +1,6 @@
-# Claude Code plugins by midudev
+# better-claude
 
-Plugins and mods for Claude Code, one per folder:
+Plugins and mods for Claude Code by midudev, one per folder:
 
 | Plugin | What it does | Folder |
 | --- | --- | --- |
@@ -10,9 +10,9 @@ Plugins and mods for Claude Code, one per folder:
 ## Install
 
 ```text
-/plugin marketplace add midudev/after-for-claude-code
-/plugin install after@after-for-claude-code
-/plugin install use-haiku@after-for-claude-code
+/plugin marketplace add midudev/better-claude
+/plugin install after@better-claude
+/plugin install use-haiku@better-claude
 ```
 
 This repository is the marketplace: [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) lists each plugin folder as a source.
