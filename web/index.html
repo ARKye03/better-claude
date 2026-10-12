@@ -3,195 +3,344 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>better-claude · Claude Code plugins</title>
-  <meta name="description" content="Small plugins and mods that make your life (and Claude) better. After, Use Haiku, Think Hard and Token Meter.">
+  <title>better-claude</title>
+  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard and Token Meter.">
+  <meta name="color-scheme" content="dark">
   <style>
     @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-latin.woff2") format("woff2"); font-display: swap; }
     @font-face { font-family: "Geist Pixel"; src: url("fonts/geist-pixel-latin.woff2") format("woff2"); font-display: swap; }
 
     :root {
-      --bg: #fafafa;
-      --fg: #111;
-      --muted: #666;
-      --line: #e4e4e4;
-      --code: #f0f0f0;
-      --accent: #D97757;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #0c0c0c;
-        --fg: #ededed;
-        --muted: #9a9a9a;
-        --line: #2a2a2a;
-        --code: #171717;
-      }
-    }
-    :root[data-theme="dark"] {
-      --bg: #0c0c0c;
+      --bg: #000;
       --fg: #ededed;
-      --muted: #9a9a9a;
-      --line: #2a2a2a;
-      --code: #171717;
+      --soft: #a1a1a1;
+      --muted: #6b6b6b;
+      --line: #1c1c1c;
+      --panel: #0a0a0a;
+      --code: #0f0f0f;
+      --clawd: rgb(215, 119, 87);
     }
 
     * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--fg);
-      font: 15px/1.6 "Geist Mono", ui-monospace, Menlo, monospace;
+      font: 14px/1.7 "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      -webkit-font-smoothing: antialiased;
     }
-    main { max-width: 720px; margin: 0 auto; padding: 64px 16px 96px; }
-    h1 { font: 400 28px/1.2 "Geist Pixel", "Geist Mono", monospace; margin: 0 0 8px; }
-    .lede { color: var(--muted); margin: 0 0 40px; }
-    a { color: inherit; text-underline-offset: 3px; }
+    ::selection { background: var(--clawd); color: #000; }
+    a { color: inherit; text-decoration: none; border-bottom: 1px solid #333; transition: border-color .2s, color .2s; }
+    a:hover { color: var(--clawd); border-color: var(--clawd); }
+    :focus-visible { outline: 1px solid var(--clawd); outline-offset: 3px; border-radius: 4px; }
+    code { color: var(--fg); }
+    .k { color: var(--clawd); }
 
-    .install { border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin: 0 0 48px; }
-    .install h2 { font-size: 18px; margin: 0 0 12px; }
-    .picks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
-    .picks label { display: flex; gap: 10px; align-items: center; cursor: pointer; }
-    .picks input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
-    pre {
+    main { max-width: 680px; margin: 0 auto; padding: 88px 16px 64px; }
+
+    /* Header: Clawd walks on top of the title */
+    .title { position: relative; display: inline-block; padding-top: 58px; }
+    .clawd { position: absolute; top: 4px; left: 0; width: 90px; height: 50px; will-change: transform; }
+    .clawd svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+    h1 {
+      font: 400 clamp(40px, 9vw, 56px)/1 "Geist Pixel", "Geist Mono", monospace;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .lede { color: var(--soft); margin: 20px 0 0; max-width: 46ch; font-size: 15px; }
+    .lede a { color: var(--fg); }
+
+    /* Install */
+    .install {
+      margin: 56px 0 72px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 20px;
+    }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 14px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+    .chip input { position: absolute; opacity: 0; pointer-events: none; }
+    .chip span {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .chip span::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; opacity: .5; transition: background .2s, opacity .2s;
+    }
+    .chip input:checked + span { color: var(--fg); border-color: #333; background: #111; }
+    .chip input:checked + span::before { background: var(--clawd); opacity: 1; }
+    .chip input:focus-visible + span { outline: 1px solid var(--clawd); outline-offset: 2px; }
+
+    .prompt {
+      margin: 0 0 14px;
+      padding: 14px 16px;
       background: var(--code);
-      padding: 12px 14px;
-      margin: 0 0 12px;
-      overflow-x: auto;
-      border-radius: 6px;
-      font-size: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--soft);
       white-space: pre-wrap;
       word-break: break-word;
-    }
-    button {
       font: inherit;
-      color: var(--bg);
-      background: var(--fg);
+      font-size: 13px;
+      min-height: 3.4em;
+    }
+    .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .note { color: var(--muted); font-size: 12px; }
+    .primary {
+      font: inherit;
+      color: #000;
+      background: var(--clawd);
       border: 0;
-      border-radius: 6px;
-      padding: 8px 14px;
+      border-radius: 8px;
+      padding: 9px 16px;
       cursor: pointer;
+      transition: filter .2s, transform .1s;
     }
-    button:disabled { opacity: .4; cursor: default; }
+    .primary:hover { filter: brightness(1.08); }
+    .primary:active { transform: translateY(1px); }
+    .primary:disabled { opacity: .35; cursor: default; filter: none; }
 
-    .plugin { border-top: 1px solid var(--line); padding: 28px 0; }
-    .plugin h2 { font-size: 18px; margin: 0 0 4px; }
-    .plugin p { margin: 0 0 16px; }
-    .links { font-size: 14px; }
+    /* Plugins */
+    .plugins { list-style: none; margin: 0; padding: 0; counter-reset: plugin; }
+    .plugin { border-top: 1px solid var(--line); padding: 32px 0; counter-increment: plugin; }
+    .plugin header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
+    .plugin header::before { content: counter(plugin, decimal-leading-zero); color: var(--muted); font-size: 12px; }
+    .plugin h2 { font-size: 16px; font-weight: 600; margin: 0; }
+    .tag { color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+    .plugin p { color: var(--soft); margin: 0 0 16px; }
+    .term {
+      position: relative;
+      margin: 0 0 10px;
+      padding: 12px 16px;
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .term .p { color: var(--muted); user-select: none; }
+    .term.cmd { padding-right: 76px; }
+    .copy {
+      position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+      font: inherit; font-size: 12px;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+    .copy:hover { color: var(--fg); border-color: #333; }
+    .links { font-size: 12px; color: var(--muted); margin: 14px 0 0; }
+    .links a { color: var(--soft); }
 
-    footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 20px; color: var(--muted); font-size: 13px; }
-
-    /* The mascot walks along the bottom edge and turns at each end */
-    .mascot {
-      position: fixed;
-      left: 0;
-      bottom: 10px;
-      width: 44px;
-      pointer-events: none;
-      animation: walk 16s linear infinite;
-    }
-    .sprite { display: block; width: 100%; height: auto; image-rendering: pixelated; animation: bob .5s steps(2) infinite; }
-    @keyframes walk {
-      0%, 49.9% { transform: translateX(0) scaleX(1); }
-      50%, 99.9% { transform: translateX(calc(100vw - 44px)) scaleX(-1); }
-      100% { transform: translateX(0) scaleX(1); }
-    }
-    @keyframes bob { 50% { transform: translateY(-2px); } }
-    @media (prefers-reduced-motion: reduce) {
-      .mascot, .sprite { animation: none; }
-    }
+    footer { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 24px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
   <main>
-    <h1>better-claude</h1>
-    <p class="lede">Small plugins and mods that make your life (and Claude) better. by <a href="https://github.com/midudev">@midudev</a>.</p>
+    <header>
+      <div class="title">
+        <div class="clawd" id="clawd" aria-hidden="true"></div>
+        <h1>better-claude</h1>
+      </div>
+      <p class="lede">Small plugins and mods that make your life (and Claude) better. by <a href="https://github.com/midudev">@midudev</a>.</p>
+    </header>
 
     <section class="install" aria-labelledby="install-title">
-      <h2 id="install-title">Install</h2>
-      <ul class="picks">
-        <li><label><input type="checkbox" data-plugin="after" checked> After</label></li>
-        <li><label><input type="checkbox" data-plugin="use-haiku" checked> Use Haiku</label></li>
-        <li><label><input type="checkbox" data-plugin="think-hard" checked> Think Hard</label></li>
-        <li><label><input type="checkbox" data-plugin="token-meter" checked> Token Meter</label></li>
+      <p class="eyebrow" id="install-title">Install</p>
+      <ul class="chips">
+        <li><label class="chip"><input type="checkbox" data-plugin="after" checked><span>After</span></label></li>
+        <li><label class="chip"><input type="checkbox" data-plugin="use-haiku" checked><span>Use Haiku</span></label></li>
+        <li><label class="chip"><input type="checkbox" data-plugin="think-hard" checked><span>Think Hard</span></label></li>
+        <li><label class="chip"><input type="checkbox" data-plugin="token-meter" checked><span>Token Meter</span></label></li>
       </ul>
-      <pre id="cmd"></pre>
-      <button type="button" id="copy">Copy prompt</button>
+      <pre class="prompt" id="prompt"></pre>
+      <div class="row">
+        <button type="button" class="primary" id="copy-prompt">Copy prompt</button>
+        <span class="note">Paste it into Claude Code and it installs them for you.</span>
+      </div>
     </section>
 
-    <section class="plugin">
-      <h2>After</h2>
-      <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
-      <pre>/plugin install after@better-claude</pre>
-      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">Docs</a></p>
-    </section>
+    <ol class="plugins">
+      <li class="plugin">
+        <header><h2>After</h2><span class="tag">/after</span></header>
+        <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
+        <pre class="term"><span class="p">❯ </span><span class="k">/after</span> update the README</pre>
+        <pre class="term cmd"><span class="p">❯ </span>/plugin install after@better-claude<button type="button" class="copy" data-copy="/plugin install after@better-claude">Copy</button></pre>
+        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">Docs</a></p>
+      </li>
 
-    <section class="plugin">
-      <h2>Use Haiku</h2>
-      <p>Start a prompt with <code>_</code> and that turn runs on Haiku. Other prompts keep the session's model.</p>
-      <pre>❯ _summarize the last commit</pre>
-      <pre>/plugin install use-haiku@better-claude</pre>
-      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">Docs</a></p>
-    </section>
+      <li class="plugin">
+        <header><h2>Use Haiku</h2><span class="tag">prefix _</span></header>
+        <p>Start a prompt with <code class="k">_</code> and that turn runs on Haiku. Other prompts keep the session's model.</p>
+        <pre class="term"><span class="p">❯ </span><span class="k">_</span>summarize the last commit</pre>
+        <pre class="term cmd"><span class="p">❯ </span>/plugin install use-haiku@better-claude<button type="button" class="copy" data-copy="/plugin install use-haiku@better-claude">Copy</button></pre>
+        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">Docs</a></p>
+      </li>
 
-    <section class="plugin">
-      <h2>Think Hard</h2>
-      <p>Start a prompt with <code>+</code> and that turn thinks at max effort. Other prompts keep the session's effort.</p>
-      <pre>❯ +plan the refactor of the parser
-/plugin install think-hard@better-claude</pre>
-      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">Docs</a></p>
-    </section>
+      <li class="plugin">
+        <header><h2>Think Hard</h2><span class="tag">prefix +</span></header>
+        <p>Start a prompt with <code class="k">+</code> and that turn thinks at max effort. Other prompts keep the session's effort.</p>
+        <pre class="term"><span class="p">❯ </span><span class="k">+</span>plan the refactor of the parser</pre>
+        <pre class="term cmd"><span class="p">❯ </span>/plugin install think-hard@better-claude<button type="button" class="copy" data-copy="/plugin install think-hard@better-claude">Copy</button></pre>
+        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">Docs</a></p>
+      </li>
 
-    <section class="plugin">
-      <h2>Token Meter</h2>
-      <p>After each turn, the status line shows its tokens and the session total.</p>
-      <pre>↑ 1.2k  ↓ 340  cache 4.1k  ·  session ↑ 1.2k  ↓ 340
-/plugin install token-meter@better-claude</pre>
-      <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">Docs</a></p>
-    </section>
+      <li class="plugin">
+        <header><h2>Token Meter</h2><span class="tag">status line</span></header>
+        <p>After each turn, the status line shows its tokens and the session's running total.</p>
+        <pre class="term">↑ 1.2k  ↓ 340  cache 4.1k  <span class="p">·</span>  session ↑ 1.2k  ↓ 340</pre>
+        <pre class="term cmd"><span class="p">❯ </span>/plugin install token-meter@better-claude<button type="button" class="copy" data-copy="/plugin install token-meter@better-claude">Copy</button></pre>
+        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">Docs</a></p>
+      </li>
+    </ol>
 
     <footer>
-      <p>MIT © Miguel Ángel Durán (midudev)</p>
+      <span>MIT © Miguel Ángel Durán (midudev)</span>
+      <a href="https://github.com/midudev/better-claude">GitHub</a>
     </footer>
   </main>
 
-  <div class="mascot"><svg class="sprite" viewBox="0 0 11 7" aria-hidden="true" shape-rendering="crispEdges"><rect x="2" y="0" width="1" height="1" fill="#D97757"/><rect x="3" y="0" width="1" height="1" fill="#D97757"/><rect x="4" y="0" width="1" height="1" fill="#D97757"/><rect x="5" y="0" width="1" height="1" fill="#D97757"/><rect x="6" y="0" width="1" height="1" fill="#D97757"/><rect x="7" y="0" width="1" height="1" fill="#D97757"/><rect x="8" y="0" width="1" height="1" fill="#D97757"/><rect x="1" y="1" width="1" height="1" fill="#D97757"/><rect x="2" y="1" width="1" height="1" fill="#D97757"/><rect x="3" y="1" width="1" height="1" fill="#D97757"/><rect x="4" y="1" width="1" height="1" fill="#D97757"/><rect x="5" y="1" width="1" height="1" fill="#D97757"/><rect x="6" y="1" width="1" height="1" fill="#D97757"/><rect x="7" y="1" width="1" height="1" fill="#D97757"/><rect x="8" y="1" width="1" height="1" fill="#D97757"/><rect x="9" y="1" width="1" height="1" fill="#D97757"/><rect x="1" y="2" width="1" height="1" fill="#D97757"/><rect x="2" y="2" width="1" height="1" fill="#D97757"/><rect x="3" y="2" width="1" height="1" fill="#0c0c0c"/><rect x="4" y="2" width="1" height="1" fill="#D97757"/><rect x="5" y="2" width="1" height="1" fill="#D97757"/><rect x="6" y="2" width="1" height="1" fill="#D97757"/><rect x="7" y="2" width="1" height="1" fill="#0c0c0c"/><rect x="8" y="2" width="1" height="1" fill="#D97757"/><rect x="9" y="2" width="1" height="1" fill="#D97757"/><rect x="1" y="3" width="1" height="1" fill="#D97757"/><rect x="2" y="3" width="1" height="1" fill="#D97757"/><rect x="3" y="3" width="1" height="1" fill="#D97757"/><rect x="4" y="3" width="1" height="1" fill="#D97757"/><rect x="5" y="3" width="1" height="1" fill="#D97757"/><rect x="6" y="3" width="1" height="1" fill="#D97757"/><rect x="7" y="3" width="1" height="1" fill="#D97757"/><rect x="8" y="3" width="1" height="1" fill="#D97757"/><rect x="9" y="3" width="1" height="1" fill="#D97757"/><rect x="0" y="4" width="1" height="1" fill="#D97757"/><rect x="1" y="4" width="1" height="1" fill="#D97757"/><rect x="2" y="4" width="1" height="1" fill="#D97757"/><rect x="3" y="4" width="1" height="1" fill="#D97757"/><rect x="4" y="4" width="1" height="1" fill="#D97757"/><rect x="5" y="4" width="1" height="1" fill="#D97757"/><rect x="6" y="4" width="1" height="1" fill="#D97757"/><rect x="7" y="4" width="1" height="1" fill="#D97757"/><rect x="8" y="4" width="1" height="1" fill="#D97757"/><rect x="9" y="4" width="1" height="1" fill="#D97757"/><rect x="10" y="4" width="1" height="1" fill="#D97757"/><rect x="0" y="5" width="1" height="1" fill="#D97757"/><rect x="2" y="5" width="1" height="1" fill="#D97757"/><rect x="3" y="5" width="1" height="1" fill="#D97757"/><rect x="4" y="5" width="1" height="1" fill="#D97757"/><rect x="5" y="5" width="1" height="1" fill="#D97757"/><rect x="6" y="5" width="1" height="1" fill="#D97757"/><rect x="7" y="5" width="1" height="1" fill="#D97757"/><rect x="8" y="5" width="1" height="1" fill="#D97757"/><rect x="10" y="5" width="1" height="1" fill="#D97757"/><rect x="2" y="6" width="1" height="1" fill="#D97757"/><rect x="4" y="6" width="1" height="1" fill="#D97757"/><rect x="6" y="6" width="1" height="1" fill="#D97757"/><rect x="8" y="6" width="1" height="1" fill="#D97757"/></svg></div>
-
   <script>
     (() => {
-      const boxes = [...document.querySelectorAll('input[data-plugin]')];
-      const out = document.getElementById('cmd');
-      const btn = document.getElementById('copy');
-      const label = btn.textContent;
+      // Clawd, glyph for glyph as Claude Code draws it (default, look-left, look-right and arms-up poses).
+      const QUADRANTS = { ' ': 0, '█': 15, '▀': 12, '▄': 3, '▌': 10, '▐': 5, '▖': 2, '▗': 1, '▘': 8, '▝': 4, '▙': 11, '▚': 9, '▛': 14, '▜': 13, '▞': 6, '▟': 7 }
+      const ARMS = {
+        down: { r1L: ' ▐', r1R: '', r2L: '▝▜', r2R: '█▀' },
+        up: { r1L: '▗▟', r1R: '▄', r2L: ' ▜', r2R: '█▘' }
+      }
+      const EYES = { open: '▛███▛█', left: '▟███▟█', right: '█▟███▟' }
+      const FEET = { both: ' ▝▝   ▝▝ ', left: ' ▝▝      ', right: '      ▝▝ ' }
 
-      function render() {
-        const picked = boxes.filter(b => b.checked).map(b => `/plugin install ${b.dataset.plugin}@better-claude`);
-        const text = picked.length ? ['/plugin marketplace add midudev/better-claude', ...picked].join('\n') : '';
-        out.textContent = text || 'Pick at least one plugin.';
-        btn.disabled = !picked.length;
+      // Each terminal cell is 2 × 4 units: four quadrants of 1 × 2. The feet row only uses its top half, so the view stops at 10.
+      function draw ({ arms = 'down', eyes = 'open', feet = 'both' }) {
+        const a = ARMS[arms]
+        const rows = [a.r1L + EYES[eyes] + a.r1R, a.r2L + '█████' + a.r2R, FEET[feet]]
+        let d = ''
+        rows.forEach((row, r) => {
+          [...row].forEach((glyph, c) => {
+            const bits = QUADRANTS[glyph] ?? 0
+            if (bits & 8) d += `M${c * 2} ${r * 4}h1v2h-1z`
+            if (bits & 4) d += `M${c * 2 + 1} ${r * 4}h1v2h-1z`
+            if (bits & 2) d += `M${c * 2} ${r * 4 + 2}h1v2h-1z`
+            if (bits & 1) d += `M${c * 2 + 1} ${r * 4 + 2}h1v2h-1z`
+          })
+        })
+        return `<svg viewBox="0 0 18 10"><path fill="rgb(215,119,87)" d="${d}"/></svg>`
       }
 
-      async function copy(text) {
+      const clawd = document.getElementById('clawd')
+      const title = clawd.parentElement
+      let reduce = false
+      try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches } catch (e) {}
+
+      let x = 0
+      let dir = 1
+      let pauseUntil = 0
+      let last = performance.now()
+      let pose = ''
+      const SPEED = 26 // px per second
+
+      function show (next) {
+        const key = JSON.stringify(next)
+        if (key !== pose) { clawd.innerHTML = draw(next); pose = key }
+      }
+
+      function tick (now) {
+        const dt = Math.min(now - last, 100) / 1000
+        last = now
+        const range = Math.max(0, title.clientWidth - clawd.offsetWidth)
+
+        if (now < pauseUntil) {
+          // At each end: look around, then throw the arms up.
+          const left = pauseUntil - now
+          show(left > 1100 ? { eyes: dir > 0 ? 'right' : 'left' } : left > 500 ? { arms: 'up' } : {})
+        } else {
+          x += dir * SPEED * dt
+          if (x >= range || x <= 0) {
+            x = Math.min(Math.max(x, 0), range)
+            dir = -dir
+            pauseUntil = now + 1600
+          }
+          const step = Math.floor(now / 180) % 2 ? 'left' : 'right'
+          show({ feet: step })
+        }
+        clawd.style.transform = `translateX(${x}px)`
+        requestAnimationFrame(tick)
+      }
+
+      if (reduce) show({})
+      else requestAnimationFrame(tick)
+
+      // Install prompt: every plugin picked by default
+      const boxes = [...document.querySelectorAll('input[data-plugin]')]
+      const out = document.getElementById('prompt')
+      const copyPrompt = document.getElementById('copy-prompt')
+
+      function promptText () {
+        const picked = boxes.filter(b => b.checked).map(b => b.dataset.plugin)
+        if (!picked.length) return ''
+        return [
+          'Install these Claude Code plugins from the better-claude marketplace (github.com/midudev/better-claude) by running:',
+          '',
+          'claude plugin marketplace add midudev/better-claude',
+          ...picked.map(name => `claude plugin install ${name}@better-claude`),
+          '',
+          'Then tell me to restart Claude Code so they load.'
+        ].join('\n')
+      }
+
+      function render () {
+        const text = promptText()
+        out.textContent = text || 'Pick at least one plugin.'
+        copyPrompt.disabled = !text
+      }
+
+      async function copy (text) {
         try {
-          await navigator.clipboard.writeText(text);
-          return true;
+          await navigator.clipboard.writeText(text)
+          return true
         } catch (e) {
-          const area = document.createElement('textarea');
-          area.value = text;
-          document.body.appendChild(area);
-          area.select();
-          const ok = document.execCommand('copy');
-          area.remove();
-          return ok;
+          try {
+            const area = document.createElement('textarea')
+            area.value = text
+            area.style.position = 'fixed'
+            area.style.opacity = '0'
+            document.body.appendChild(area)
+            area.select()
+            const ok = document.execCommand('copy')
+            area.remove()
+            return ok
+          } catch (e2) {
+            return false
+          }
         }
       }
 
-      boxes.forEach(b => b.addEventListener('change', render));
-      btn.addEventListener('click', async () => {
-        const ok = await copy(out.textContent);
-        btn.textContent = ok ? 'Copied' : 'Copy failed';
-        setTimeout(() => { btn.textContent = label; }, 1500);
-      });
-      render();
-    })();
+      async function flash (button, text) {
+        const label = button.textContent
+        button.textContent = (await copy(text)) ? 'Copied' : 'Copy failed'
+        setTimeout(() => { button.textContent = label }, 1400)
+      }
+
+      boxes.forEach(b => b.addEventListener('change', render))
+      copyPrompt.addEventListener('click', () => flash(copyPrompt, promptText()))
+      document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => flash(b, b.dataset.copy)))
+      render()
+    })()
   </script>
 </body>
 </html>
