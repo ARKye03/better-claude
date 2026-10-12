@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>better-claude · Claude Code plugins</title>
-  <meta name="description" content="Plugins and mods for Claude Code: After, a prompt queue, and Use Haiku, a _ prefix for Haiku turns.">
+  <meta name="description" content="Small plugins and mods that make your life (and Claude) better. After, Use Haiku, Think Hard and Token Meter.">
   <style>
     @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-latin.woff2") format("woff2"); font-display: swap; }
     @font-face { font-family: "Geist Pixel"; src: url("fonts/geist-pixel-latin.woff2") format("woff2"); font-display: swap; }
@@ -15,6 +15,7 @@
       --muted: #666;
       --line: #e4e4e4;
       --code: #f0f0f0;
+      --accent: #D97757;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
@@ -40,13 +41,16 @@
       color: var(--fg);
       font: 15px/1.6 "Geist Mono", ui-monospace, Menlo, monospace;
     }
-    main { max-width: 720px; margin: 0 auto; padding: 64px 16px; }
+    main { max-width: 720px; margin: 0 auto; padding: 64px 16px 96px; }
     h1 { font: 400 28px/1.2 "Geist Pixel", "Geist Mono", monospace; margin: 0 0 8px; }
-    .lede { color: var(--muted); margin: 0 0 48px; }
+    .lede { color: var(--muted); margin: 0 0 40px; }
+    a { color: inherit; text-underline-offset: 3px; }
 
-    .plugin { border-top: 1px solid var(--line); padding: 28px 0; }
-    .plugin h2 { font-size: 18px; margin: 0 0 4px; }
-    .plugin p { margin: 0 0 16px; }
+    .install { border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin: 0 0 48px; }
+    .install h2 { font-size: 18px; margin: 0 0 12px; }
+    .picks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
+    .picks label { display: flex; gap: 10px; align-items: center; cursor: pointer; }
+    .picks input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
     pre {
       background: var(--code);
       padding: 12px 14px;
@@ -54,24 +58,64 @@
       overflow-x: auto;
       border-radius: 6px;
       font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    .links { font-size: 14px; }
-    a { color: inherit; text-underline-offset: 3px; }
-    .muted { color: var(--muted); }
+    button {
+      font: inherit;
+      color: var(--bg);
+      background: var(--fg);
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .4; cursor: default; }
 
-    footer {
-      border-top: 1px solid var(--line);
-      margin-top: 48px;
-      padding-top: 20px;
-      color: var(--muted);
-      font-size: 13px;
+    .plugin { border-top: 1px solid var(--line); padding: 28px 0; }
+    .plugin h2 { font-size: 18px; margin: 0 0 4px; }
+    .plugin p { margin: 0 0 16px; }
+    .links { font-size: 14px; }
+
+    footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 20px; color: var(--muted); font-size: 13px; }
+
+    /* The mascot walks along the bottom edge and turns at each end */
+    .mascot {
+      position: fixed;
+      left: 0;
+      bottom: 10px;
+      width: 44px;
+      pointer-events: none;
+      animation: walk 16s linear infinite;
+    }
+    .sprite { display: block; width: 100%; height: auto; image-rendering: pixelated; animation: bob .5s steps(2) infinite; }
+    @keyframes walk {
+      0%, 49.9% { transform: translateX(0) scaleX(1); }
+      50%, 99.9% { transform: translateX(calc(100vw - 44px)) scaleX(-1); }
+      100% { transform: translateX(0) scaleX(1); }
+    }
+    @keyframes bob { 50% { transform: translateY(-2px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .mascot, .sprite { animation: none; }
     }
   </style>
 </head>
 <body>
   <main>
     <h1>better-claude</h1>
-    <p class="lede">Small plugins and mods by <a href="https://github.com/midudev">midudev</a>.</p>
+    <p class="lede">Small plugins and mods that make your life (and Claude) better. by <a href="https://github.com/midudev">@midudev</a>.</p>
+
+    <section class="install" aria-labelledby="install-title">
+      <h2 id="install-title">Install</h2>
+      <ul class="picks">
+        <li><label><input type="checkbox" data-plugin="after" checked> After</label></li>
+        <li><label><input type="checkbox" data-plugin="use-haiku" checked> Use Haiku</label></li>
+        <li><label><input type="checkbox" data-plugin="think-hard" checked> Think Hard</label></li>
+        <li><label><input type="checkbox" data-plugin="token-meter" checked> Token Meter</label></li>
+      </ul>
+      <pre id="cmd"></pre>
+      <button type="button" id="copy">Copy prompt</button>
+    </section>
 
     <section class="plugin">
       <h2>After</h2>
@@ -105,9 +149,49 @@
     </section>
 
     <footer>
-      <p>Add the marketplace first: <code>/plugin marketplace add midudev/better-claude</code></p>
       <p>MIT © Miguel Ángel Durán (midudev)</p>
     </footer>
   </main>
+
+  <div class="mascot"><svg class="sprite" viewBox="0 0 11 7" aria-hidden="true" shape-rendering="crispEdges"><rect x="2" y="0" width="1" height="1" fill="#D97757"/><rect x="3" y="0" width="1" height="1" fill="#D97757"/><rect x="4" y="0" width="1" height="1" fill="#D97757"/><rect x="5" y="0" width="1" height="1" fill="#D97757"/><rect x="6" y="0" width="1" height="1" fill="#D97757"/><rect x="7" y="0" width="1" height="1" fill="#D97757"/><rect x="8" y="0" width="1" height="1" fill="#D97757"/><rect x="1" y="1" width="1" height="1" fill="#D97757"/><rect x="2" y="1" width="1" height="1" fill="#D97757"/><rect x="3" y="1" width="1" height="1" fill="#D97757"/><rect x="4" y="1" width="1" height="1" fill="#D97757"/><rect x="5" y="1" width="1" height="1" fill="#D97757"/><rect x="6" y="1" width="1" height="1" fill="#D97757"/><rect x="7" y="1" width="1" height="1" fill="#D97757"/><rect x="8" y="1" width="1" height="1" fill="#D97757"/><rect x="9" y="1" width="1" height="1" fill="#D97757"/><rect x="1" y="2" width="1" height="1" fill="#D97757"/><rect x="2" y="2" width="1" height="1" fill="#D97757"/><rect x="3" y="2" width="1" height="1" fill="#0c0c0c"/><rect x="4" y="2" width="1" height="1" fill="#D97757"/><rect x="5" y="2" width="1" height="1" fill="#D97757"/><rect x="6" y="2" width="1" height="1" fill="#D97757"/><rect x="7" y="2" width="1" height="1" fill="#0c0c0c"/><rect x="8" y="2" width="1" height="1" fill="#D97757"/><rect x="9" y="2" width="1" height="1" fill="#D97757"/><rect x="1" y="3" width="1" height="1" fill="#D97757"/><rect x="2" y="3" width="1" height="1" fill="#D97757"/><rect x="3" y="3" width="1" height="1" fill="#D97757"/><rect x="4" y="3" width="1" height="1" fill="#D97757"/><rect x="5" y="3" width="1" height="1" fill="#D97757"/><rect x="6" y="3" width="1" height="1" fill="#D97757"/><rect x="7" y="3" width="1" height="1" fill="#D97757"/><rect x="8" y="3" width="1" height="1" fill="#D97757"/><rect x="9" y="3" width="1" height="1" fill="#D97757"/><rect x="0" y="4" width="1" height="1" fill="#D97757"/><rect x="1" y="4" width="1" height="1" fill="#D97757"/><rect x="2" y="4" width="1" height="1" fill="#D97757"/><rect x="3" y="4" width="1" height="1" fill="#D97757"/><rect x="4" y="4" width="1" height="1" fill="#D97757"/><rect x="5" y="4" width="1" height="1" fill="#D97757"/><rect x="6" y="4" width="1" height="1" fill="#D97757"/><rect x="7" y="4" width="1" height="1" fill="#D97757"/><rect x="8" y="4" width="1" height="1" fill="#D97757"/><rect x="9" y="4" width="1" height="1" fill="#D97757"/><rect x="10" y="4" width="1" height="1" fill="#D97757"/><rect x="0" y="5" width="1" height="1" fill="#D97757"/><rect x="2" y="5" width="1" height="1" fill="#D97757"/><rect x="3" y="5" width="1" height="1" fill="#D97757"/><rect x="4" y="5" width="1" height="1" fill="#D97757"/><rect x="5" y="5" width="1" height="1" fill="#D97757"/><rect x="6" y="5" width="1" height="1" fill="#D97757"/><rect x="7" y="5" width="1" height="1" fill="#D97757"/><rect x="8" y="5" width="1" height="1" fill="#D97757"/><rect x="10" y="5" width="1" height="1" fill="#D97757"/><rect x="2" y="6" width="1" height="1" fill="#D97757"/><rect x="4" y="6" width="1" height="1" fill="#D97757"/><rect x="6" y="6" width="1" height="1" fill="#D97757"/><rect x="8" y="6" width="1" height="1" fill="#D97757"/></svg></div>
+
+  <script>
+    (() => {
+      const boxes = [...document.querySelectorAll('input[data-plugin]')];
+      const out = document.getElementById('cmd');
+      const btn = document.getElementById('copy');
+      const label = btn.textContent;
+
+      function render() {
+        const picked = boxes.filter(b => b.checked).map(b => `/plugin install ${b.dataset.plugin}@better-claude`);
+        const text = picked.length ? ['/plugin marketplace add midudev/better-claude', ...picked].join('\n') : '';
+        out.textContent = text || 'Pick at least one plugin.';
+        btn.disabled = !picked.length;
+      }
+
+      async function copy(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          const area = document.createElement('textarea');
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          const ok = document.execCommand('copy');
+          area.remove();
+          return ok;
+        }
+      }
+
+      boxes.forEach(b => b.addEventListener('change', render));
+      btn.addEventListener('click', async () => {
+        const ok = await copy(out.textContent);
+        btn.textContent = ok ? 'Copied' : 'Copy failed';
+        setTimeout(() => { btn.textContent = label; }, 1500);
+      });
+      render();
+    })();
+  </script>
 </body>
 </html>
