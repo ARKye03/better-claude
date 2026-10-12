@@ -22,14 +22,16 @@ function importGraph (file, seen = new Set()) {
 describe('plugin wiring', () => {
   const pkg = readJson('package.json')
   const plugin = readJson('.claude-plugin/plugin.json')
-  const marketplace = readJson('.claude-plugin/marketplace.json')
+  const marketplace = JSON.parse(fs.readFileSync(path.join(ROOT, '..', '.claude-plugin', 'marketplace.json'), 'utf8'))
   const hooks = readJson('hooks/hooks.json')
 
   test('versions and names agree everywhere', () => {
     assert.equal(plugin.name, 'after')
     assert.equal(plugin.version, pkg.version)
-    assert.equal(marketplace.plugins[0].name, plugin.name)
-    assert.equal(marketplace.plugins[0].version, pkg.version)
+    const entry = marketplace.plugins.find((p) => p.name === plugin.name)
+    assert.ok(entry, 'the repository marketplace lists after')
+    assert.equal(entry.source, './after')
+    assert.equal(entry.version, pkg.version)
   })
 
   test('has no runtime dependencies', () => {

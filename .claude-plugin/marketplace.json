@@ -5,14 +5,21 @@
     "url": "https://github.com/midudev"
   },
   "metadata": {
-    "description": "After: a prompt queue for Claude Code"
+    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku, a prompt prefix that runs one prompt on Haiku"
   },
   "plugins": [
     {
       "name": "after",
-      "source": "./",
+      "source": "./after",
       "description": "Queue prompts to run after the current task, without steering it.",
       "version": "0.2.0",
+      "category": "productivity"
+    },
+    {
+      "name": "use-haiku",
+      "source": "./use-haiku",
+      "description": "Start a prompt with _ to run that turn on Haiku.",
+      "version": "0.1.0",
       "category": "productivity"
     }
   ]

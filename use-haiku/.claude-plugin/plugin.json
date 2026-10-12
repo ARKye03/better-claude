@@ -1,0 +1,13 @@
+{
+  "name": "use-haiku",
+  "version": "0.1.0",
+  "description": "Start a prompt with _ and that turn runs on Haiku. Other prompts keep the session's model.",
+  "author": {
+    "name": "Miguel Ángel Durán (midudev)",
+    "url": "https://github.com/midudev"
+  },
+  "homepage": "https://github.com/midudev/after-for-claude-code",
+  "repository": "https://github.com/midudev/after-for-claude-code",
+  "license": "MIT",
+  "keywords": ["haiku", "model", "prompt", "mod"]
+}
