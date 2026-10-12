@@ -1,0 +1,13 @@
+{
+  "name": "token-meter",
+  "version": "0.1.0",
+  "description": "Shows each turn's tokens in the status line, with the session's running total.",
+  "author": {
+    "name": "Miguel Ángel Durán (midudev)",
+    "url": "https://github.com/midudev"
+  },
+  "homepage": "https://github.com/midudev/better-claude",
+  "repository": "https://github.com/midudev/better-claude",
+  "license": "MIT",
+  "keywords": ["tokens", "usage", "status", "mod"]
+}

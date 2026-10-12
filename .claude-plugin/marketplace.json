@@ -5,7 +5,7 @@
     "url": "https://github.com/midudev"
   },
   "metadata": {
-    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku, a prompt prefix that runs one prompt on Haiku"
+    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter, tokens in the status line"
   },
   "plugins": [
     {
@@ -19,6 +19,20 @@
       "name": "use-haiku",
       "source": "./use-haiku",
       "description": "Start a prompt with _ to run that turn on Haiku.",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
+      "name": "think-hard",
+      "source": "./think-hard",
+      "description": "Start a prompt with + and that turn thinks at max effort.",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
+      "name": "token-meter",
+      "source": "./token-meter",
+      "description": "Shows each turn's tokens in the status line, with the session total.",
       "version": "0.1.0",
       "category": "productivity"
     }
