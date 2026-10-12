@@ -5,7 +5,7 @@
     "url": "https://github.com/midudev"
   },
   "metadata": {
-    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter, tokens in the status line"
+    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter and Sub Meter, tokens and subscription usage at a glance"
   },
   "plugins": [
     {
@@ -33,6 +33,13 @@
       "name": "token-meter",
       "source": "./token-meter",
       "description": "Shows each turn's tokens in the status line, with the session total.",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
+      "name": "sub-meter",
+      "source": "./sub-meter",
+      "description": "Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar.",
       "version": "0.1.0",
       "category": "productivity"
     }

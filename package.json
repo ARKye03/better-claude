@@ -1,7 +1,7 @@
 {
   "name": "better-claude",
   "version": "0.2.0",
-  "description": "Plugins and mods for Claude Code by midudev: After, Use Haiku, Think Hard and Token Meter.",
+  "description": "Plugins and mods for Claude Code by midudev: After, Use Haiku, Think Hard, Token Meter and Sub Meter.",
   "type": "module",
   "license": "MIT",
   "author": "Miguel Ángel Durán (midudev)",
@@ -24,10 +24,10 @@
   "scripts": {
     "test": "npm run test:node && npm run test:mod",
     "test:node": "node --test \"after/test/*.test.js\"",
-    "test:mod": "claude plugin test ./after && claude plugin test ./use-haiku && claude plugin test ./think-hard && claude plugin test ./token-meter",
+    "test:mod": "claude plugin test ./after && claude plugin test ./use-haiku && claude plugin test ./think-hard && claude plugin test ./token-meter && claude plugin test ./sub-meter",
     "test:watch": "node --test --watch \"after/test/*.test.js\"",
     "typecheck": "npx -y -p typescript@7 tsc -p after",
-    "validate": "claude plugin validate . && claude plugin validate ./after && claude plugin validate ./use-haiku && claude plugin validate ./think-hard && claude plugin validate ./token-meter",
+    "validate": "claude plugin validate . && claude plugin validate ./after && claude plugin validate ./use-haiku && claude plugin validate ./think-hard && claude plugin validate ./token-meter && claude plugin validate ./sub-meter",
     "eval": "node after/scripts/eval-haiku.js"
   }
 }
