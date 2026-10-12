@@ -20,7 +20,7 @@ function importGraph (file, seen = new Set()) {
 }
 
 describe('plugin wiring', () => {
-  const pkg = readJson('package.json')
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'package.json'), 'utf8'))
   const plugin = readJson('.claude-plugin/plugin.json')
   const marketplace = JSON.parse(fs.readFileSync(path.join(ROOT, '..', '.claude-plugin', 'marketplace.json'), 'utf8'))
   const hooks = readJson('hooks/hooks.json')

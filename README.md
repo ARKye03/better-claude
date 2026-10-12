@@ -23,6 +23,6 @@ This repository is the marketplace: [`.claude-plugin/marketplace.json`](.claude-
 
 ## Development
 
-Each plugin is its own folder with its own `package.json` or manifest. Run the After commands from `after/`, and validate or test any plugin with `claude plugin validate ./<folder>` and `claude plugin test ./<folder>` from here.
+Each plugin is its own folder with its own manifest. One `package.json` at the root runs everything: `npm test`, `npm run validate`, `npm run test:node` (After's unit tests) and `npm run test:mod` (every plugin's tests against the engine).
 
 MIT © Miguel Ángel Durán (midudev)
