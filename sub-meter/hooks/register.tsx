@@ -67,11 +67,14 @@ export const register: Register = (on, options) => {
     const hasReset = resetsIn !== undefined && resetsIn <= 0
     const percent = hasReset ? 0 : shown.percentUsed
     const filled = Math.round((Math.min(Math.max(percent, 0), 100) / 100) * CELLS)
+    // The engine's own labels (and any other plugin's) stay as drawn, before the meter.
+    const labels = e.props.modes.length > 0 ? await next(e) : null
     const { Box, Text } = $.ui.resolve(e)
 
     return (
       <Box flexDirection="row">
-        {e.props.modes.length > 0 ? <Text dimColor>{e.props.modes.join(' & ')} · </Text> : null}
+        {labels}
+        {labels ? <Text dimColor> · </Text> : null}
         <Text dimColor>{LABELS[shown.kind] ?? shown.kind} </Text>
         <Text color={colorFor(percent)}>{'━'.repeat(filled)}</Text>
         <Text dimColor>{'─'.repeat(CELLS - filled)}</Text>

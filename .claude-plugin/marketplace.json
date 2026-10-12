@@ -32,7 +32,7 @@
     {
       "name": "token-meter",
       "source": "./token-meter",
-      "description": "Shows each turn's tokens in the status line, with the session total.",
+      "description": "Each turn's tokens and the session total, in color under the prompt.",
       "version": "0.1.0",
       "category": "productivity"
     },

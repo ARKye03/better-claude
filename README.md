@@ -7,7 +7,7 @@ Plugins and mods for Claude Code by midudev, one per folder:
 | **After** | A prompt queue: `/after <task>` runs it when Claude finishes, without steering it. | [`after/`](after/README.md) |
 | **Use Haiku** | Start a prompt with `_` and that turn runs on Haiku. | [`use-haiku/`](use-haiku/README.md) |
 | **Think Hard** | Start a prompt with `+` and that turn thinks at max effort. | [`think-hard/`](think-hard/README.md) |
-| **Token Meter** | Each turn's tokens in the status line, with the session total. | [`token-meter/`](token-meter/README.md) |
+| **Token Meter** | Each turn's tokens and the session total, in color under the prompt. | [`token-meter/`](token-meter/README.md) |
 | **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`sub-meter/`](sub-meter/README.md) |
 
 ## Install

@@ -4,149 +4,169 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>better-claude</title>
-  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard and Token Meter.">
+  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard, Token Meter and Sub Meter.">
   <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 18 18" shape-rendering="crispEdges"%3E%3Cpath fill="rgb(215,119,87)" d="M3 0h1v2h-1zM3 2h1v2h-1zM4 0h1v2h-1zM5 0h1v2h-1zM4 2h1v2h-1zM6 0h1v2h-1zM7 0h1v2h-1zM6 2h1v2h-1zM7 2h1v2h-1zM8 0h1v2h-1zM9 0h1v2h-1zM8 2h1v2h-1zM9 2h1v2h-1zM10 0h1v2h-1zM11 0h1v2h-1zM10 2h1v2h-1zM11 2h1v2h-1zM12 0h1v2h-1zM13 0h1v2h-1zM12 2h1v2h-1zM14 0h1v2h-1zM15 0h1v2h-1zM14 2h1v2h-1zM15 2h1v2h-1zM1 4h1v2h-1zM2 4h1v2h-1zM3 4h1v2h-1zM3 6h1v2h-1zM4 4h1v2h-1zM5 4h1v2h-1zM4 6h1v2h-1zM5 6h1v2h-1zM6 4h1v2h-1zM7 4h1v2h-1zM6 6h1v2h-1zM7 6h1v2h-1zM8 4h1v2h-1zM9 4h1v2h-1zM8 6h1v2h-1zM9 6h1v2h-1zM10 4h1v2h-1zM11 4h1v2h-1zM10 6h1v2h-1zM11 6h1v2h-1zM12 4h1v2h-1zM13 4h1v2h-1zM12 6h1v2h-1zM13 6h1v2h-1zM14 4h1v2h-1zM15 4h1v2h-1zM14 6h1v2h-1zM15 6h1v2h-1zM16 4h1v2h-1zM17 4h1v2h-1zM3 8h1v2h-1zM5 8h1v2h-1zM13 8h1v2h-1zM15 8h1v2h-1z"/%3E%3C/svg%3E'>
+  <link rel="preload" href="fonts/geist-mono-5a9ccb88.woff2" as="font" type="font/woff2" crossorigin>
   <style>
-    @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-latin.woff2") format("woff2"); font-display: swap; }
-    @font-face { font-family: "Geist Pixel"; src: url("fonts/geist-pixel-latin.woff2") format("woff2"); font-display: swap; }
+    /* Both fonts are cut down to what the page shows by fonts/subset.py: rerun it after changing the text. */
+    @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-5a9ccb88.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
+    @font-face { font-family: "Geist Pixel"; src: url(data:font/woff2;base64,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) format("woff2"); font-display: block; }
+    /* Menlo sized to Geist Mono's box, so the swap does not move the text */
+    @font-face { font-family: "Geist Mono Fallback"; src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"); size-adjust: 99.66%; ascent-override: 100.84%; descent-override: 29.6%; line-gap-override: 0%; }
 
     :root {
       --bg: #000;
-      --fg: #ededed;
-      --soft: #a1a1a1;
-      --muted: #6b6b6b;
-      --line: #1c1c1c;
-      --panel: #0a0a0a;
-      --code: #0f0f0f;
+      --fg: #ececec;
+      --soft: #9b9b9b;
+      --muted: #5e5e5e;
+      --line: #161616;
       --clawd: rgb(215, 119, 87);
+      --clawd-soft: rgba(215, 119, 87, .14);
     }
 
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
-      background: var(--bg);
+      min-height: 100vh;
+      background:
+        radial-gradient(720px 420px at 18% -80px, rgba(215, 119, 87, .13), transparent 70%),
+        var(--bg);
       color: var(--fg);
-      font: 14px/1.7 "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font: 14px/1.75 "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
       -webkit-font-smoothing: antialiased;
     }
     ::selection { background: var(--clawd); color: #000; }
-    a { color: inherit; text-decoration: none; border-bottom: 1px solid #333; transition: border-color .2s, color .2s; }
-    a:hover { color: var(--clawd); border-color: var(--clawd); }
-    :focus-visible { outline: 1px solid var(--clawd); outline-offset: 3px; border-radius: 4px; }
-    code { color: var(--fg); }
-    .k { color: var(--clawd); }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 1px solid var(--clawd); outline-offset: 4px; border-radius: 2px; }
+    .accent { color: var(--clawd); }
+    .dim { color: var(--muted); }
 
-    main { max-width: 680px; margin: 0 auto; padding: 88px 16px 64px; }
+    main { max-width: 760px; margin: 0 auto; padding: 96px 16px 56px; }
 
-    /* Header: Clawd walks on top of the title */
+    /* Hero: Clawd walks along the top of the title */
     .title { position: relative; display: inline-block; padding-top: 58px; }
     .clawd { position: absolute; top: 4px; left: 0; width: 90px; height: 50px; will-change: transform; }
     .clawd svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
     h1 {
-      font: 400 clamp(40px, 9vw, 56px)/1 "Geist Pixel", "Geist Mono", monospace;
-      letter-spacing: -0.01em;
       margin: 0;
+      font: 400 clamp(44px, 11vw, 72px)/1 "Geist Pixel", "Geist Mono", "Geist Mono Fallback", monospace;
+      letter-spacing: -0.015em;
     }
-    .lede { color: var(--soft); margin: 20px 0 0; max-width: 46ch; font-size: 15px; }
-    .lede a { color: var(--fg); }
+    .lede { margin: 22px 0 0; max-width: 44ch; color: var(--soft); font-size: 15px; }
+    .lede a { color: var(--fg); border-bottom: 1px solid #333; transition: border-color .2s, color .2s; }
+    .lede a:hover { color: var(--clawd); border-color: var(--clawd); }
 
     /* Install */
-    .install {
-      margin: 56px 0 72px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--panel);
-      padding: 20px;
-    }
-    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 14px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
-    .chip input { position: absolute; opacity: 0; pointer-events: none; }
-    .chip span {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 12px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
+    .install { margin: 48px 0 0; }
+    .picks { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 22px; padding: 0; list-style: none; }
+    .pick {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 0; border: 0; background: none;
+      font: inherit; color: var(--muted);
       cursor: pointer;
-      user-select: none;
-      transition: color .2s, border-color .2s, background .2s;
+      transition: color .2s;
     }
-    .chip span::before {
-      content: ""; width: 6px; height: 6px; border-radius: 50%;
-      background: currentColor; opacity: .5; transition: background .2s, opacity .2s;
+    .pick::before {
+      content: ""; width: 9px; height: 9px;
+      border: 1px solid currentColor;
+      transition: background .2s, border-color .2s;
     }
-    .chip input:checked + span { color: var(--fg); border-color: #333; background: #111; }
-    .chip input:checked + span::before { background: var(--clawd); opacity: 1; }
-    .chip input:focus-visible + span { outline: 1px solid var(--clawd); outline-offset: 2px; }
+    .pick[aria-pressed="true"] { color: var(--fg); }
+    .pick[aria-pressed="true"]::before { background: var(--clawd); border-color: var(--clawd); }
+    .pick:hover { color: var(--fg); }
 
-    .prompt {
-      margin: 0 0 14px;
-      padding: 14px 16px;
-      background: var(--code);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      color: var(--soft);
-      white-space: pre-wrap;
-      word-break: break-word;
-      font: inherit;
-      font-size: 13px;
-      min-height: 3.4em;
-    }
-    .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .note { color: var(--muted); font-size: 12px; }
+    .cta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
     .primary {
-      font: inherit;
+      font: inherit; font-weight: 500;
       color: #000;
       background: var(--clawd);
       border: 0;
-      border-radius: 8px;
-      padding: 9px 16px;
+      border-radius: 999px;
+      padding: 10px 20px;
       cursor: pointer;
-      transition: filter .2s, transform .1s;
+      box-shadow: 0 0 0 0 var(--clawd-soft);
+      transition: box-shadow .25s, transform .1s, opacity .2s;
     }
-    .primary:hover { filter: brightness(1.08); }
+    .primary:hover { box-shadow: 0 0 0 6px var(--clawd-soft); }
     .primary:active { transform: translateY(1px); }
-    .primary:disabled { opacity: .35; cursor: default; filter: none; }
+    .primary:disabled { opacity: .35; cursor: default; box-shadow: none; }
+    .cta .note { color: var(--muted); font-size: 12px; }
+
+    details { margin: 18px 0 0; }
+    summary { color: var(--muted); font-size: 12px; cursor: pointer; list-style: none; width: max-content; transition: color .2s; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "+ "; color: var(--clawd); }
+    details[open] summary::before { content: "− "; }
+    summary:hover { color: var(--fg); }
+    .preview {
+      margin: 12px 0 0;
+      padding: 2px 0 2px 16px;
+      border-left: 1px solid var(--clawd);
+      color: var(--soft);
+      font: inherit; font-size: 12.5px;
+      white-space: pre-wrap; word-break: break-word;
+    }
 
     /* Plugins */
-    .plugins { list-style: none; margin: 0; padding: 0; counter-reset: plugin; }
-    .plugin { border-top: 1px solid var(--line); padding: 32px 0; counter-increment: plugin; }
-    .plugin header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
-    .plugin header::before { content: counter(plugin, decimal-leading-zero); color: var(--muted); font-size: 12px; }
-    .plugin h2 { font-size: 16px; font-weight: 600; margin: 0; }
-    .tag { color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
-    .plugin p { color: var(--soft); margin: 0 0 16px; }
-    .term {
-      position: relative;
-      margin: 0 0 10px;
-      padding: 12px 16px;
-      background: var(--code);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      font: inherit;
-      font-size: 13px;
-      overflow-x: auto;
-      white-space: pre;
+    .plugins { list-style: none; margin: 88px 0 0; padding: 0; counter-reset: plugin; }
+    .plugin {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 8px 32px;
+      padding: 30px 0;
+      border-top: 1px solid var(--line);
+      counter-increment: plugin;
     }
-    .term .p { color: var(--muted); user-select: none; }
-    .term.cmd { padding-right: 76px; }
+    .meta h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+    .meta h2::before { content: counter(plugin, decimal-leading-zero); color: var(--muted); font-size: 12px; font-weight: 400; }
+    .meta .tag { display: block; margin: 2px 0 0 30px; color: var(--clawd); font-size: 12px; }
+    .body p { margin: 0 0 14px; color: var(--soft); }
+    .body code { color: var(--fg); }
+    .body .line { margin: 0 0 6px; color: var(--fg); white-space: pre-wrap; word-break: break-word; }
+    .line .p { color: var(--clawd); user-select: none; }
+    .footer-line { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
+    .footer-line .mode { color: #e5c07b; }
+    .up { color: #afd7ff; }
+    .down { color: #87d787; }
+    .cmd { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; font-size: 12.5px; }
+    .cmd code { color: var(--muted); }
     .copy {
-      position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
-      font: inherit; font-size: 12px;
-      color: var(--muted);
-      background: transparent;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 3px 9px;
+      padding: 0; border: 0; background: none;
+      font: inherit; font-size: 12px; color: var(--muted);
       cursor: pointer;
+      border-bottom: 1px dotted #3a3a3a;
       transition: color .2s, border-color .2s;
     }
-    .copy:hover { color: var(--fg); border-color: #333; }
-    .links { font-size: 12px; color: var(--muted); margin: 14px 0 0; }
-    .links a { color: var(--soft); }
+    .copy:hover { color: var(--clawd); border-color: var(--clawd); }
+    .body .links { margin: 10px 0 0; font-size: 12px; }
+    .links a { color: var(--muted); transition: color .2s; }
+    .links a:hover { color: var(--clawd); }
 
-    footer { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 24px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    /* Footer */
+    footer { margin-top: 96px; display: grid; gap: 28px; color: var(--muted); font-size: 12px; }
+    .foot-top { display: flex; justify-content: space-between; align-items: center; gap: 16px 32px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand .mini { width: 36px; height: 20px; flex: none; }
+    .brand .mini svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+    .brand b { display: block; color: var(--fg); font: 400 18px/1.1 "Geist Pixel", "Geist Mono", monospace; }
+    .brand span { display: block; margin-top: 3px; }
+    .foot-links { display: flex; gap: 22px; margin: 0; padding: 0; list-style: none; }
+    .foot-links a { color: var(--soft); transition: color .2s; }
+    .foot-links a:hover { color: var(--clawd); }
+    .legal { margin: 0; max-width: 72ch; line-height: 1.8; color: #545454; }
+    .legal strong { color: var(--muted); font-weight: 500; }
+    .foot-bottom { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid var(--line); color: #474747; }
+    .foot-bottom a { transition: color .2s; }
+    .foot-bottom a:hover { color: var(--clawd); }
+
+    @media (max-width: 640px) {
+      main { padding-top: 64px; }
+      .plugin { grid-template-columns: 1fr; gap: 10px; }
+      .plugins { margin-top: 64px; }
+    }
   </style>
 </head>
 <body>
@@ -157,60 +177,97 @@
         <h1>better-claude</h1>
       </div>
       <p class="lede">Small plugins and mods that make your life (and Claude) better. by <a href="https://github.com/midudev">@midudev</a>.</p>
-    </header>
 
-    <section class="install" aria-labelledby="install-title">
-      <p class="eyebrow" id="install-title">Install</p>
-      <ul class="chips">
-        <li><label class="chip"><input type="checkbox" data-plugin="after" checked><span>After</span></label></li>
-        <li><label class="chip"><input type="checkbox" data-plugin="use-haiku" checked><span>Use Haiku</span></label></li>
-        <li><label class="chip"><input type="checkbox" data-plugin="think-hard" checked><span>Think Hard</span></label></li>
-        <li><label class="chip"><input type="checkbox" data-plugin="token-meter" checked><span>Token Meter</span></label></li>
-      </ul>
-      <pre class="prompt" id="prompt"></pre>
-      <div class="row">
-        <button type="button" class="primary" id="copy-prompt">Copy prompt</button>
-        <span class="note">Paste it into Claude Code and it installs them for you.</span>
-      </div>
-    </section>
+      <section class="install" aria-label="Install">
+        <ul class="picks">
+          <li><button type="button" class="pick" data-plugin="after" aria-pressed="true">After</button></li>
+          <li><button type="button" class="pick" data-plugin="use-haiku" aria-pressed="true">Use Haiku</button></li>
+          <li><button type="button" class="pick" data-plugin="think-hard" aria-pressed="true">Think Hard</button></li>
+          <li><button type="button" class="pick" data-plugin="token-meter" aria-pressed="true">Token Meter</button></li>
+          <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
+        </ul>
+        <div class="cta">
+          <button type="button" class="primary" id="copy-prompt">Copy install prompt</button>
+          <span class="note">Paste it into Claude Code. It installs the ones you picked.</span>
+        </div>
+        <details>
+          <summary>What it copies</summary>
+          <pre class="preview" id="prompt"></pre>
+        </details>
+      </section>
+    </header>
 
     <ol class="plugins">
       <li class="plugin">
-        <header><h2>After</h2><span class="tag">/after</span></header>
-        <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
-        <pre class="term"><span class="p">❯ </span><span class="k">/after</span> update the README</pre>
-        <pre class="term cmd"><span class="p">❯ </span>/plugin install after@better-claude<button type="button" class="copy" data-copy="/plugin install after@better-claude">Copy</button></pre>
-        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">Docs</a></p>
+        <div class="meta"><h2>After</h2><span class="tag">/after</span></div>
+        <div class="body">
+          <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
+          <p class="line"><span class="p">❯ </span><span class="accent">/after</span> update the README</p>
+          <div class="cmd"><code>/plugin install after@better-claude</code><button type="button" class="copy" data-copy="/plugin install after@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">docs</a></p>
+        </div>
       </li>
 
       <li class="plugin">
-        <header><h2>Use Haiku</h2><span class="tag">prefix _</span></header>
-        <p>Start a prompt with <code class="k">_</code> and that turn runs on Haiku. Other prompts keep the session's model.</p>
-        <pre class="term"><span class="p">❯ </span><span class="k">_</span>summarize the last commit</pre>
-        <pre class="term cmd"><span class="p">❯ </span>/plugin install use-haiku@better-claude<button type="button" class="copy" data-copy="/plugin install use-haiku@better-claude">Copy</button></pre>
-        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">Docs</a></p>
+        <div class="meta"><h2>Use Haiku</h2><span class="tag">prefix _</span></div>
+        <div class="body">
+          <p>Start a prompt with <code class="accent">_</code> and that turn runs on Haiku. Every other prompt keeps the session's model.</p>
+          <p class="line"><span class="p">❯ </span><span class="accent">_</span>summarize the last commit</p>
+          <div class="cmd"><code>/plugin install use-haiku@better-claude</code><button type="button" class="copy" data-copy="/plugin install use-haiku@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">docs</a></p>
+        </div>
       </li>
 
       <li class="plugin">
-        <header><h2>Think Hard</h2><span class="tag">prefix +</span></header>
-        <p>Start a prompt with <code class="k">+</code> and that turn thinks at max effort. Other prompts keep the session's effort.</p>
-        <pre class="term"><span class="p">❯ </span><span class="k">+</span>plan the refactor of the parser</pre>
-        <pre class="term cmd"><span class="p">❯ </span>/plugin install think-hard@better-claude<button type="button" class="copy" data-copy="/plugin install think-hard@better-claude">Copy</button></pre>
-        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">Docs</a></p>
+        <div class="meta"><h2>Think Hard</h2><span class="tag">prefix +</span></div>
+        <div class="body">
+          <p>Start a prompt with <code class="accent">+</code> and that turn thinks at max effort. Every other prompt keeps the session's effort.</p>
+          <p class="line"><span class="p">❯ </span><span class="accent">+</span>plan the refactor of the parser</p>
+          <div class="cmd"><code>/plugin install think-hard@better-claude</code><button type="button" class="copy" data-copy="/plugin install think-hard@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">docs</a></p>
+        </div>
       </li>
 
       <li class="plugin">
-        <header><h2>Token Meter</h2><span class="tag">status line</span></header>
-        <p>After each turn, the status line shows its tokens and the session's running total.</p>
-        <pre class="term">↑ 1.2k  ↓ 340  cache 4.1k  <span class="p">·</span>  session ↑ 1.2k  ↓ 340</pre>
-        <pre class="term cmd"><span class="p">❯ </span>/plugin install token-meter@better-claude<button type="button" class="copy" data-copy="/plugin install token-meter@better-claude">Copy</button></pre>
-        <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">Source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">Docs</a></p>
+        <div class="meta"><h2>Token Meter</h2><span class="tag">hint line</span></div>
+        <div class="body">
+          <p>After each turn, the line under the prompt ends with its tokens and the session's running total, in color.</p>
+          <p class="line"><span class="up">↑</span> 1.2k  <span class="down">↓</span> 340  <span class="accent">cache</span> 4.1k<span class="dim">  ·  session ↑ 1.2k  ↓ 340</span></p>
+          <div class="cmd"><code>/plugin install token-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install token-meter@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">docs</a></p>
+        </div>
+      </li>
+
+      <li class="plugin">
+        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span></div>
+        <div class="body">
+          <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
+          <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span>5h <span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
+          <div class="cmd"><code>/plugin install sub-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install sub-meter@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p>
+        </div>
       </li>
     </ol>
 
     <footer>
-      <span>MIT © Miguel Ángel Durán (midudev)</span>
-      <a href="https://github.com/midudev/better-claude">GitHub</a>
+      <div class="foot-top">
+        <div class="brand">
+          <div class="mini" data-clawd aria-hidden="true"></div>
+          <div><b>better-claude</b><span>Small plugins and mods for Claude Code.</span></div>
+        </div>
+        <ul class="foot-links">
+          <li><a href="https://github.com/midudev/better-claude">GitHub</a></li>
+          <li><a href="https://github.com/midudev/better-claude/issues">Issues</a></li>
+          <li><a href="https://github.com/midudev">@midudev</a></li>
+        </ul>
+      </div>
+
+      <p class="legal"><strong>Not affiliated with Anthropic.</strong> better-claude is an independent, community project by Miguel Ángel Durán (midudev). It is not affiliated with, endorsed by or sponsored by Anthropic, PBC. Claude and Claude Code are trademarks of Anthropic. The pixel character on this page is Clawd, Claude Code's mascot, drawn from the glyphs Claude Code shows in the terminal; it belongs to Anthropic and appears here only to refer to the tool these plugins extend. The plugins are provided as is, without warranty of any kind: you install and run them at your own risk.</p>
+
+      <div class="foot-bottom">
+        <span>Code under the <a href="https://github.com/midudev/better-claude/blob/main/LICENSE">MIT License</a> · © 2026 Miguel Ángel Durán</span>
+        <span>Geist fonts under the <a href="https://github.com/vercel/geist-font/blob/main/OFL.txt">SIL Open Font License</a></span>
+      </div>
     </footer>
   </main>
 
@@ -250,19 +307,26 @@
       let x = 0
       let dir = 1
       let pauseUntil = 0
-      let last = performance.now()
+      let last = 0
       let pose = ''
+      let range = 0
+      let frame = 0
       const SPEED = 26 // px per second
 
       function show (next) {
-        const key = JSON.stringify(next)
+        const key = (next.arms || '') + (next.eyes || '') + (next.feet || '')
         if (key !== pose) { clawd.innerHTML = draw(next); pose = key }
       }
 
+      // The walk is measured once per resize, never per frame.
+      const measure = () => { range = Math.max(0, title.clientWidth - clawd.offsetWidth) }
+      measure()
+      if ('ResizeObserver' in window) new ResizeObserver(measure).observe(title)
+      else addEventListener('resize', measure)
+
       function tick (now) {
-        const dt = Math.min(now - last, 100) / 1000
+        const dt = last ? Math.min(now - last, 100) / 1000 : 0
         last = now
-        const range = Math.max(0, title.clientWidth - clawd.offsetWidth)
 
         if (now < pauseUntil) {
           // At each end: look around, then throw the arms up.
@@ -275,23 +339,33 @@
             dir = -dir
             pauseUntil = now + 1600
           }
-          const step = Math.floor(now / 180) % 2 ? 'left' : 'right'
-          show({ feet: step })
+          show({ feet: Math.floor(now / 180) % 2 ? 'left' : 'right' })
         }
-        clawd.style.transform = `translateX(${x}px)`
-        requestAnimationFrame(tick)
+        clawd.style.transform = `translate3d(${x}px, 0, 0)`
+        frame = requestAnimationFrame(tick)
       }
 
-      if (reduce) show({})
-      else requestAnimationFrame(tick)
+      const start = () => { if (!frame) { last = 0; frame = requestAnimationFrame(tick) } }
+      const stop = () => { cancelAnimationFrame(frame); frame = 0 }
+
+      show({})
+      document.querySelectorAll('[data-clawd]').forEach(el => { el.innerHTML = draw({}) })
+      if (!reduce) {
+        // Only walk while the title is on screen.
+        if ('IntersectionObserver' in window) {
+          new IntersectionObserver(([entry]) => (entry.isIntersecting ? start() : stop())).observe(title)
+        } else {
+          start()
+        }
+      }
 
       // Install prompt: every plugin picked by default
-      const boxes = [...document.querySelectorAll('input[data-plugin]')]
+      const picks = [...document.querySelectorAll('.pick')]
       const out = document.getElementById('prompt')
       const copyPrompt = document.getElementById('copy-prompt')
 
       function promptText () {
-        const picked = boxes.filter(b => b.checked).map(b => b.dataset.plugin)
+        const picked = picks.filter(p => p.getAttribute('aria-pressed') === 'true').map(p => p.dataset.plugin)
         if (!picked.length) return ''
         return [
           'Install these Claude Code plugins from the better-claude marketplace (github.com/midudev/better-claude) by running:',
@@ -330,15 +404,18 @@
         }
       }
 
-      async function flash (button, text) {
+      async function flash (button, text, done, failed) {
         const label = button.textContent
-        button.textContent = (await copy(text)) ? 'Copied' : 'Copy failed'
+        button.textContent = (await copy(text)) ? done : failed
         setTimeout(() => { button.textContent = label }, 1400)
       }
 
-      boxes.forEach(b => b.addEventListener('change', render))
-      copyPrompt.addEventListener('click', () => flash(copyPrompt, promptText()))
-      document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => flash(b, b.dataset.copy)))
+      picks.forEach(p => p.addEventListener('click', () => {
+        p.setAttribute('aria-pressed', p.getAttribute('aria-pressed') === 'true' ? 'false' : 'true')
+        render()
+      }))
+      copyPrompt.addEventListener('click', () => flash(copyPrompt, promptText(), 'Copied', 'Copy failed'))
+      document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => flash(b, b.dataset.copy, 'copied', 'copy failed')))
       render()
     })()
   </script>

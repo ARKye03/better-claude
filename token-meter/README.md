@@ -1,12 +1,12 @@
 # Token Meter
 
-A Claude Code mod: after each turn, the status line shows its tokens and the session's running total.
+A Claude Code mod: after each turn, the hint line under the prompt ends with that turn's tokens and the session's running total, in color.
 
 ```text
-↑ 1.2k  ↓ 340  cache 4.1k  ·  session ↑ 1.2k  ↓ 340
+⏵⏵ auto mode on · ↑ 1.2k  ↓ 340  cache 4.1k  ·  session ↑ 1.2k  ↓ 340
 ```
 
-`↑` input, `↓` output, `cache` the tokens read from or written to the prompt cache. The session total starts over when the session starts.
+`↑` input (blue), `↓` output (green), `cache` the tokens read from or written to the prompt cache (Claude orange); the session total is dim. It starts over when the session starts.
 
 ## Install
 
@@ -17,13 +17,18 @@ A Claude Code mod: after each turn, the status line shows its tokens and the ses
 
 ## How it works
 
-One hooks module ([`hooks/register.ts`](hooks/register.ts)): `turn.complete` adds the turn's `usage` to the running total and draws it with `$.ui.status`. A turn without usage leaves the line as it is.
+One hooks module ([`hooks/register.tsx`](hooks/register.tsx)):
+
+- `turn.complete` keeps the turn's `usage` and adds it to the session total, in `$.state`.
+- A `ui.render` hook on `PromptHint` wraps what the engine draws there (`await next(e)`, so its pills stay live and other plugins still apply) and adds the meter after it.
+
+The status line (`$.ui.status`) only takes plain text, so the meter draws in the hint line to have colors.
 
 ## Development
 
 ```bash
-claude plugin validate .   # from this folder
-claude plugin test .       # runs hooks/register.test.ts against the engine
+claude plugin validate ./token-meter   # from the repository root
+claude plugin test ./token-meter       # runs hooks/register.test.tsx against the engine
 ```
 
 MIT © Miguel Ángel Durán (midudev)

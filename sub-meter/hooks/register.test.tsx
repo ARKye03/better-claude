@@ -61,7 +61,9 @@ test("keeps the engine's mode labels before the meter", async ($, on) => {
   world(on)
   await startSession($)
   const ui = await footer($, ['focus'])
-  expect(await ui.find({ type: 'Text', text: 'focus · ' })).toBeDefined()
+  expect(await ui.find({ key: 'engine' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' · ' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '5h ' })).toBeDefined()
 })
 
 test('off a subscription the engine draws its own footer', async ($, on) => {
