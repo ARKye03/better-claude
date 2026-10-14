@@ -162,7 +162,7 @@
     }
     .image-window[hidden] { display: none; }
     .image-window img { display: block; width: min(480px, calc(100vw - 44px)); height: auto; }
-    .body .links { margin: 10px 0 0; font-size: 12px; }
+    .meta .links { margin: 10px 0 0 30px; font-size: 12px; }
     .links a { color: var(--muted); transition: color .2s; }
     .links a:hover { color: var(--clawd); }
 
@@ -221,62 +221,56 @@
 
     <ol class="plugins">
       <li class="plugin">
-        <div class="meta"><h2>Image Preview</h2><span class="tag">hover</span></div>
+        <div class="meta"><h2>Image Preview</h2><span class="tag">hover</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/image-preview">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/image-preview/README.md">docs</a></p></div>
         <div class="body">
-          <p>Hover a pasted <code class="accent">[Image #1]</code>, while you write or on the prompts you sent, and the picture opens in a small window by the pointer, every pixel of it, on macOS, Windows and Linux; or floats over the transcript, in color cells or, in Ghostty and kitty, the picture itself. Click it to open it full size.</p>
+          <p>Hover a pasted <code class="accent">[Image #1]</code>, while you write or in a prompt you sent, and the picture opens in a small window by the pointer. Click it to open it in Preview.</p>
           <p class="line"><button type="button" class="image-chip" id="image-chip" aria-describedby="image-window">[Image #1]</button><span class="dim"> hover to preview</span></p>
           <div class="cmd"><code>/plugin install image-preview@better-claude</code><button type="button" class="copy" data-copy="/plugin install image-preview@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/image-preview">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/image-preview/README.md">docs</a></p>
         </div>
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span></div>
+        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p></div>
         <div class="body">
           <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
           <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span id="sub-meter"><span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
           <div class="cmd"><code>/plugin install sub-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install sub-meter@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p>
         </div>
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>After</h2><span class="tag">/after</span></div>
+        <div class="meta"><h2>After</h2><span class="tag">/after</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">docs</a></p></div>
         <div class="body">
           <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">/after</span> update the README</p>
           <div class="cmd"><code>/plugin install after@better-claude</code><button type="button" class="copy" data-copy="/plugin install after@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">docs</a></p>
         </div>
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>Use Haiku</h2><span class="tag">prefix _</span></div>
+        <div class="meta"><h2>Use Haiku</h2><span class="tag">prefix _</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">docs</a></p></div>
         <div class="body">
           <p>Start a prompt with <code class="accent">_</code> and that turn runs on Haiku, its subagents too. You see it as you type, on the spinner and under the answer. Every other prompt keeps the session's model.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">_</span>summarize the last commit</p>
           <div class="cmd"><code>/plugin install use-haiku@better-claude</code><button type="button" class="copy" data-copy="/plugin install use-haiku@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">docs</a></p>
         </div>
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>Think Hard</h2><span class="tag">prefix +</span></div>
+        <div class="meta"><h2>Think Hard</h2><span class="tag">prefix +</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">docs</a></p></div>
         <div class="body">
           <p>Start a prompt with <code class="accent">+</code> and that turn thinks at max effort. Every other prompt keeps the session's effort.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">+</span>plan the refactor of the parser</p>
           <div class="cmd"><code>/plugin install think-hard@better-claude</code><button type="button" class="copy" data-copy="/plugin install think-hard@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">docs</a></p>
         </div>
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>Token Meter</h2><span class="tag">hint line</span></div>
+        <div class="meta"><h2>Token Meter</h2><span class="tag">hint line</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">docs</a></p></div>
         <div class="body">
           <p>After each turn, the line under the prompt ends with its tokens and the session's running total, in color.</p>
           <p class="line"><span class="up">↑</span> 1.2k  <span class="down">↓</span> 340  <span class="accent">cache</span> 4.1k<span class="dim">  ·  session ↑ 1.2k  ↓ 340</span></p>
           <div class="cmd"><code>/plugin install token-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install token-meter@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">docs</a></p>
         </div>
       </li>
     </ol>
@@ -304,7 +298,7 @@
   </main>
 
   <div class="image-window" id="image-window" role="tooltip" hidden>
-    <img src="screenshot.svg" width="480" height="300" alt="A screenshot: checkout.tsx fails with TypeError: Cannot read properties of undefined (reading 'items')">
+    <img src="screenshot.svg" width="480" height="300" alt="A screenshot of a pricing page with three plans: Free, Pro and Team">
   </div>
 
   <script>
@@ -487,6 +481,8 @@
       }
       chip.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') open(e.clientX, e.clientY) })
       chip.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') close() })
+      // Closed by a scroll while the pointer stayed: a move on the chip opens it again.
+      chip.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && imageWindow.hidden) open(e.clientX, e.clientY) })
       // No pointer to hover with: a tap opens and closes it; the keyboard's focus opens it by the chip.
       chip.addEventListener('pointerdown', e => {
         if (e.pointerType === 'mouse') return
