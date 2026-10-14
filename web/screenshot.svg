@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" font-family="Menlo, 'SF Mono', Consolas, 'DejaVu Sans Mono', monospace" font-size="11.5">
+  <title>checkout.tsx fails: TypeError: Cannot read properties of undefined (reading 'items')</title>
+  <rect width="480" height="300" rx="9" fill="#1e1e1e"/>
+  <path d="M0 9a9 9 0 0 1 9-9h462a9 9 0 0 1 9 9v21H0z" fill="#2c2c2c"/>
+  <circle cx="17" cy="15" r="5.5" fill="#ff5f57"/>
+  <circle cx="35" cy="15" r="5.5" fill="#febc2e"/>
+  <circle cx="53" cy="15" r="5.5" fill="#28c840"/>
+  <text x="240" y="19" text-anchor="middle" fill="#8d8d8d" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif" font-size="11.5">checkout.tsx — shop</text>
+  <rect y="30" width="480" height="1" fill="#141414"/>
+
+  <g fill="#5a5a5a" text-anchor="end">
+    <text x="30" y="54">10</text>
+    <text x="30" y="72">11</text>
+    <text x="30" y="90">12</text>
+    <text x="30" y="108">13</text>
+    <text x="30" y="126">14</text>
+    <text x="30" y="144">15</text>
+    <text x="30" y="162">16</text>
+  </g>
+  <rect x="38" y="60" width="442" height="17" fill="#2a1f1f"/>
+  <text x="44" y="54" xml:space="preserve"><tspan fill="#c586c0">export function</tspan> <tspan fill="#dcdcaa">Cart</tspan><tspan fill="#d4d4d4">({ </tspan><tspan fill="#9cdcfe">order</tspan><tspan fill="#d4d4d4"> }) {</tspan></text>
+  <text x="44" y="72" xml:space="preserve">  <tspan fill="#569cd6">const</tspan> <tspan fill="#4fc1ff">total</tspan> <tspan fill="#d4d4d4">=</tspan> <tspan fill="#9cdcfe">order</tspan><tspan fill="#d4d4d4">.</tspan><tspan fill="#9cdcfe">items</tspan></text>
+  <path d="M155 76q2.25 -3 4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0t4.5 0" fill="none" stroke="#f14c4c" stroke-width="1.1"/>
+  <text x="44" y="90" xml:space="preserve">    <tspan fill="#d4d4d4">.</tspan><tspan fill="#dcdcaa">map</tspan><tspan fill="#d4d4d4">(</tspan><tspan fill="#9cdcfe">item</tspan> <tspan fill="#569cd6">=&gt;</tspan> <tspan fill="#9cdcfe">item</tspan><tspan fill="#d4d4d4">.</tspan><tspan fill="#9cdcfe">price</tspan> <tspan fill="#d4d4d4">*</tspan> <tspan fill="#9cdcfe">item</tspan><tspan fill="#d4d4d4">.</tspan><tspan fill="#9cdcfe">qty</tspan><tspan fill="#d4d4d4">)</tspan></text>
+  <text x="44" y="108" xml:space="preserve">    <tspan fill="#d4d4d4">.</tspan><tspan fill="#dcdcaa">reduce</tspan><tspan fill="#d4d4d4">((</tspan><tspan fill="#9cdcfe">a</tspan><tspan fill="#d4d4d4">, </tspan><tspan fill="#9cdcfe">b</tspan><tspan fill="#d4d4d4">)</tspan> <tspan fill="#569cd6">=&gt;</tspan> <tspan fill="#9cdcfe">a</tspan> <tspan fill="#d4d4d4">+</tspan> <tspan fill="#9cdcfe">b</tspan><tspan fill="#d4d4d4">, </tspan><tspan fill="#b5cea8">0</tspan><tspan fill="#d4d4d4">)</tspan></text>
+  <text x="44" y="144" xml:space="preserve">  <tspan fill="#c586c0">return</tspan> <tspan fill="#808080">&lt;</tspan><tspan fill="#569cd6">p</tspan><tspan fill="#808080">&gt;</tspan><tspan fill="#d4d4d4">Total: {</tspan><tspan fill="#4fc1ff">total</tspan><tspan fill="#d4d4d4">} €</tspan><tspan fill="#808080">&lt;/</tspan><tspan fill="#569cd6">p</tspan><tspan fill="#808080">&gt;</tspan></text>
+  <text x="44" y="162" fill="#d4d4d4">}</text>
+
+  <rect y="182" width="480" height="1" fill="#333"/>
+  <path d="M0 183h480v108a9 9 0 0 1-9 9H9a9 9 0 0 1-9-9z" fill="#181818"/>
+  <text x="14" y="202" fill="#d4d4d4" font-size="10" letter-spacing=".6">TERMINAL</text>
+  <rect x="14" y="206" width="56" height="1" fill="#d4d4d4"/>
+  <text x="96" y="202" fill="#6a6a6a" font-size="10" letter-spacing=".6">PROBLEMS</text>
+  <text x="14" y="228" fill="#d4d4d4" xml:space="preserve"><tspan fill="#87d787">❯</tspan> npm run dev</text>
+  <text x="14" y="248" fill="#f14c4c">✗ TypeError: Cannot read properties of undefined</text>
+  <text x="14" y="264" fill="#f14c4c" xml:space="preserve">  (reading 'items')</text>
+  <text x="14" y="282" fill="#8d8d8d" xml:space="preserve">    at Cart (src/checkout.tsx:11:23)</text>
+</svg>

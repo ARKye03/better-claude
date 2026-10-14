@@ -1,0 +1,71 @@
+# Image Preview
+
+A Claude Code mod: hover a pasted `[Image #1]` and see the picture, in a small window by the pointer or drawn in the terminal.
+
+```text
+  12
+╭──────────────────────────────────────────╮
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│
+│▃▁▁▘▘▁▃▀▀▖▗▀▖▗▀▏▊▎▗▘▃▗▀▖▀▂▁▉▚▉▘▏▗▀▖▗▀▖▀▀▀│   ← the picture, in color, over the transcript
+│[Image #1] PNG · 151 KB                   │
+╰──────────────────────────────────────────╯
+[Image #1] hover to preview · click to open
+────────────────────────────────────────────────
+❯ what is wrong in this screenshot? [Image #1]
+```
+
+- **While you write**: paste an image and a row above the prompt lists its `[Image #N]`. Put the pointer on one and its preview opens; move it off and the preview closes. Click it and the image opens in Preview, at full size.
+- **After you send it**: put the pointer on an `[Image #N]` of the prompt you sent, or on the `⎿ [Image #N]` rows Claude Code lists under it, and its preview opens. Click the `[Image #N]` in the prompt to open it in Preview.
+
+The preview shows only while the pointer is on the `[Image #N]` that opened it. Typing, sending the prompt or the transcript moving closes it; moving the pointer on the `[Image #N]` again opens it again.
+
+**In a window.** Where the terminal cannot draw a picture itself (Warp, iTerm2, Terminal.app, VS Code), the preview is a small window of its own, by the pointer, outside the terminal, with every pixel of the picture: a screenshot of text reads as it was. It never takes the focus or the pointer, so you keep typing and hovering in the terminal. It shows in about a third of a second, through what the system has:
+
+- macOS: JavaScript for Automation (`osascript`) and AppKit, nothing to install.
+- Windows: PowerShell and Windows Forms, nothing to install.
+- Linux: Python's Tk on X11 (`python3-tk` on Debian and Ubuntu, `python3-tkinter` on Fedora).
+
+Turn it off with the **Preview in a window** option (`/config`) to keep the preview in the terminal. Over SSH, the window would open on the other machine: there the terminal draws it.
+
+**In the terminal.** Without the window, the card floats over the transcript and moves nothing: the transcript does not scroll, the prompt does not jump. In Ghostty and kitty the terminal draws the picture itself, through the kitty graphics protocol. Elsewhere it is drawn in colored block elements: each cell is sampled at eight by eight points and drawn with the half, eighth or quarter block (`▀ ▂ ▎ ▚ …`) that splits those points best, in their two colors, in any terminal with true color. Cells are coarse: a screenshot of text shows its layout, not text you can read. Only on a screen too short to float a card over the transcript does it open in the band above the prompt, which grows to hold it.
+
+Warp speaks the kitty graphics protocol, but not the Unicode placeholders Claude Code draws pictures with, so Warp cannot draw it in the terminal. `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1` makes this mod send the picture to a terminal Claude Code does not know draws pictures; it only helps in one that supports those placeholders.
+
+Hovering needs the mouse, so it needs Claude Code's fullscreen interface (`"tui": "fullscreen"` in your settings, or `/config`).
+
+## Install
+
+```text
+/plugin marketplace add midudev/better-claude
+/plugin install image-preview@better-claude
+```
+
+## Limits
+
+- The text inside the prompt box can only be colored by a mod, not hovered, so while you write the pointer target is the row above it, not the `[Image #N]` in the box itself.
+- In a sent prompt, the `[Image #N]` takes the pointer and the click in the prompt's first line only, before it would wrap: past that, the mod cannot tell where the line puts it. The `⎿ [Image #N]` rows show the card but take no click, which Claude Code keeps for itself.
+- A click opens the image with `open -a Preview` on macOS, `explorer` on Windows, `xdg-open` elsewhere.
+- On Linux the window needs X11 (or XWayland): under Wayland alone there is none, and the terminal draws the card. Under XWayland the window may not stand by the pointer when the terminal is a Wayland window.
+- The Windows window and converter have been written and checked (the scripts parse, the commands are tested) but not yet run on Windows.
+- It reads the images Claude Code stores for the session (in its temp folder, `/tmp/claude-<uid>/…/images`). Images from a session started before you installed the mod are found too; images from another session are not.
+- A session resumed with `--continue` draws its rows all at once, its prompts apart from the rest; the mod puts them back in order by turns. A turn with no `done` line (one interrupted) can put a card a few rows off.
+- It shrinks the picture with `sips` on macOS, ImageMagick (`magick` or `convert`) on Linux, and ImageMagick or PowerShell on Windows. Without them, the card says it cannot read it.
+
+## How it works
+
+One hooks module ([`hooks/register.tsx`](hooks/register.tsx)), a surface module for the pointer targets ([`hooks/chip.tsx`](hooks/chip.tsx)), a decoder ([`hooks/pixels.ts`](hooks/pixels.ts)) and the window programs ([`hooks/window.ts`](hooks/window.ts)):
+
+- `prompt.edit` and a look at the box every half second (a paste puts the placeholder there without an edit event) keep the list of `[Image #N]` in the draft.
+- Each image is found in the session's temp folder, shrunk to a BMP with `sips` or ImageMagick, and parsed into pixels; each cell is sampled from them in linear light at eight by eight points.
+- Each `[Image #N]` is a `Client`: in the band, a chip it draws; in a sent prompt, an unpainted region laid over the `[Image #N]` Claude Code draws, in the prompt and in the rows under it. It posts when the pointer comes onto it, moves on it and leaves it, and when it is clicked; a `ui.message` hook opens and closes the card, or opens the image.
+- In a window, a hover starts the system's program with `$.process.spawn`: a borderless panel that is never activated and lets the pointer through, placed by the pointer and clear of it. It says `shown`, then a word every tenth of a second, so the mod wakes to end it when the pointer leaves; one that never shows a window hands the preview back to the terminal for the rest of the session.
+- A `ui.render` hook on every transcript row notes which of its rows show. The card is drawn `position: "absolute"` (out of the flow, so it moves nothing) in the row that holds it: the lowest on screen for a chip of the band, the sent prompt itself or the lowest row for its list. It covers only rows drawn before that row, never the `[Image #N]` that opened it. Only the row the card leaves and the one it joins draw again (a state family, one flag per row).
+
+## Development
+
+```bash
+claude plugin validate ./image-preview   # from the repository root
+claude plugin test ./image-preview       # runs hooks/register.test.tsx against the engine
+```
+
+MIT © Miguel Ángel Durán (midudev)

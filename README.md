@@ -9,6 +9,7 @@ Plugins and mods for Claude Code by midudev, one per folder:
 | **Think Hard** | Start a prompt with `+` and that turn thinks at max effort. | [`think-hard/`](think-hard/README.md) |
 | **Token Meter** | Each turn's tokens and the session total, in color under the prompt. | [`token-meter/`](token-meter/README.md) |
 | **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`sub-meter/`](sub-meter/README.md) |
+| **Image Preview** | Hover a pasted `[Image #N]` to see the picture, while you write and on the prompts you sent. | [`image-preview/`](image-preview/README.md) |
 
 ## Install
 
@@ -19,6 +20,7 @@ Plugins and mods for Claude Code by midudev, one per folder:
 /plugin install think-hard@better-claude
 /plugin install token-meter@better-claude
 /plugin install sub-meter@better-claude
+/plugin install image-preview@better-claude
 ```
 
 This repository is the marketplace: [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) lists each plugin folder as a source.

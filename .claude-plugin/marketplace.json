@@ -5,7 +5,7 @@
     "url": "https://github.com/midudev"
   },
   "metadata": {
-    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter and Sub Meter, tokens and subscription usage at a glance"
+    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter and Sub Meter, tokens and subscription usage at a glance; Image Preview, hover a pasted image to see it"
   },
   "plugins": [
     {
@@ -40,6 +40,13 @@
       "name": "sub-meter",
       "source": "./sub-meter",
       "description": "Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar.",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
+      "name": "image-preview",
+      "source": "./image-preview",
+      "description": "Hover a pasted [Image #N] to see the picture: above the prompt while you write, and on the prompts you sent.",
       "version": "0.1.0",
       "category": "productivity"
     }

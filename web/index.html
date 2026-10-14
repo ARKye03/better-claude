@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>better-claude</title>
-  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard, Token Meter and Sub Meter.">
+  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard, Token Meter, Sub Meter and Image Preview.">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 18 18" shape-rendering="crispEdges"%3E%3Cpath fill="rgb(215,119,87)" d="M3 0h1v2h-1zM3 2h1v2h-1zM4 0h1v2h-1zM5 0h1v2h-1zM4 2h1v2h-1zM6 0h1v2h-1zM7 0h1v2h-1zM6 2h1v2h-1zM7 2h1v2h-1zM8 0h1v2h-1zM9 0h1v2h-1zM8 2h1v2h-1zM9 2h1v2h-1zM10 0h1v2h-1zM11 0h1v2h-1zM10 2h1v2h-1zM11 2h1v2h-1zM12 0h1v2h-1zM13 0h1v2h-1zM12 2h1v2h-1zM14 0h1v2h-1zM15 0h1v2h-1zM14 2h1v2h-1zM15 2h1v2h-1zM1 4h1v2h-1zM2 4h1v2h-1zM3 4h1v2h-1zM3 6h1v2h-1zM4 4h1v2h-1zM5 4h1v2h-1zM4 6h1v2h-1zM5 6h1v2h-1zM6 4h1v2h-1zM7 4h1v2h-1zM6 6h1v2h-1zM7 6h1v2h-1zM8 4h1v2h-1zM9 4h1v2h-1zM8 6h1v2h-1zM9 6h1v2h-1zM10 4h1v2h-1zM11 4h1v2h-1zM10 6h1v2h-1zM11 6h1v2h-1zM12 4h1v2h-1zM13 4h1v2h-1zM12 6h1v2h-1zM13 6h1v2h-1zM14 4h1v2h-1zM15 4h1v2h-1zM14 6h1v2h-1zM15 6h1v2h-1zM16 4h1v2h-1zM17 4h1v2h-1zM3 8h1v2h-1zM5 8h1v2h-1zM13 8h1v2h-1zM15 8h1v2h-1z"/%3E%3C/svg%3E'>
@@ -141,6 +141,27 @@
       transition: color .2s, border-color .2s;
     }
     .copy:hover { color: var(--clawd); border-color: var(--clawd); }
+    /* Image Preview: the chip lights as in the terminal, and its picture opens in a panel by the
+       pointer, as the mod's window does on macOS: HUD material, round corners, a shadow, the
+       pointer passing through. */
+    .image-chip {
+      padding: 0; border: 0; background: none;
+      font: inherit; color: var(--clawd);
+      cursor: default;
+    }
+    .image-chip:hover, .image-chip[aria-expanded="true"] { background: var(--clawd); color: #000; }
+    .image-window {
+      position: fixed; top: 0; left: 0; z-index: 10;
+      padding: 6px;
+      border-radius: 10px;
+      background: rgba(40, 40, 42, .72);
+      -webkit-backdrop-filter: blur(24px) saturate(1.6);
+      backdrop-filter: blur(24px) saturate(1.6);
+      box-shadow: 0 0 0 .5px rgba(255, 255, 255, .16), 0 2px 8px rgba(0, 0, 0, .35), 0 22px 56px rgba(0, 0, 0, .55);
+      pointer-events: none;
+    }
+    .image-window[hidden] { display: none; }
+    .image-window img { display: block; width: min(480px, calc(100vw - 44px)); height: auto; }
     .body .links { margin: 10px 0 0; font-size: 12px; }
     .links a { color: var(--muted); transition: color .2s; }
     .links a:hover { color: var(--clawd); }
@@ -180,11 +201,12 @@
 
       <section class="install" aria-label="Install">
         <ul class="picks">
+          <li><button type="button" class="pick" data-plugin="image-preview" aria-pressed="true">Image Preview</button></li>
+          <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
           <li><button type="button" class="pick" data-plugin="after" aria-pressed="true">After</button></li>
           <li><button type="button" class="pick" data-plugin="use-haiku" aria-pressed="true">Use Haiku</button></li>
           <li><button type="button" class="pick" data-plugin="think-hard" aria-pressed="true">Think Hard</button></li>
           <li><button type="button" class="pick" data-plugin="token-meter" aria-pressed="true">Token Meter</button></li>
-          <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
         </ul>
         <div class="cta">
           <button type="button" class="primary" id="copy-prompt">Copy install prompt</button>
@@ -198,6 +220,26 @@
     </header>
 
     <ol class="plugins">
+      <li class="plugin">
+        <div class="meta"><h2>Image Preview</h2><span class="tag">hover</span></div>
+        <div class="body">
+          <p>Hover a pasted <code class="accent">[Image #1]</code>, while you write or on the prompts you sent, and the picture opens in a small window by the pointer, every pixel of it, on macOS, Windows and Linux; or floats over the transcript, in color cells or, in Ghostty and kitty, the picture itself. Click it to open it full size.</p>
+          <p class="line"><button type="button" class="image-chip" id="image-chip" aria-describedby="image-window">[Image #1]</button><span class="dim"> hover to preview</span></p>
+          <div class="cmd"><code>/plugin install image-preview@better-claude</code><button type="button" class="copy" data-copy="/plugin install image-preview@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/image-preview">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/image-preview/README.md">docs</a></p>
+        </div>
+      </li>
+
+      <li class="plugin">
+        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span></div>
+        <div class="body">
+          <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
+          <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span id="sub-meter"><span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
+          <div class="cmd"><code>/plugin install sub-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install sub-meter@better-claude">copy</button></div>
+          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p>
+        </div>
+      </li>
+
       <li class="plugin">
         <div class="meta"><h2>After</h2><span class="tag">/after</span></div>
         <div class="body">
@@ -237,16 +279,6 @@
           <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">docs</a></p>
         </div>
       </li>
-
-      <li class="plugin">
-        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span></div>
-        <div class="body">
-          <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
-          <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span>5h <span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
-          <div class="cmd"><code>/plugin install sub-meter@better-claude</code><button type="button" class="copy" data-copy="/plugin install sub-meter@better-claude">copy</button></div>
-          <p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p>
-        </div>
-      </li>
     </ol>
 
     <footer>
@@ -270,6 +302,10 @@
       </div>
     </footer>
   </main>
+
+  <div class="image-window" id="image-window" role="tooltip" hidden>
+    <img src="screenshot.svg" width="480" height="300" alt="A screenshot: checkout.tsx fails with TypeError: Cannot read properties of undefined (reading 'items')">
+  </div>
 
   <script>
     (() => {
@@ -415,6 +451,56 @@
         render()
       }))
       copyPrompt.addEventListener('click', () => flash(copyPrompt, promptText(), 'Copied', 'Copy failed'))
+
+      // Sub Meter: the 5-hour and the weekly windows take turns, as in the footer (there every 8 seconds).
+      const meter = document.getElementById('sub-meter')
+      const WINDOWS = [{ label: '5h', percent: 58, resets: '2h 10m' }, { label: 'week', percent: 31, resets: '3d 4h' }]
+      let meterWindow = 0
+      setInterval(() => {
+        meterWindow = (meterWindow + 1) % WINDOWS.length
+        const { label, percent, resets } = WINDOWS[meterWindow]
+        const filled = Math.round(percent / 10)
+        meter.innerHTML = `<span class="dim">${label} </span><span class="accent">${'━'.repeat(filled)}</span><span class="dim">${'─'.repeat(10 - filled)}</span> ${percent}% <span class="dim">· ${resets}</span>`
+      }, 4000)
+
+      // Image Preview: the picture opens by the pointer while it is on the chip, above it and to its
+      // right, under it or to its left where there is no room, never over it, as the mod's window does.
+      const chip = document.getElementById('image-chip')
+      const imageWindow = document.getElementById('image-window')
+      const GAP = 18
+      const EDGE = 8
+      function open (x, y) {
+        imageWindow.hidden = false
+        chip.setAttribute('aria-expanded', 'true')
+        const { width, height } = imageWindow.getBoundingClientRect()
+        let left = x + GAP
+        let top = y - GAP - height
+        if (top < EDGE) top = y + GAP
+        if (left + width > innerWidth - EDGE) left = x - GAP - width
+        left = Math.max(EDGE, Math.min(left, innerWidth - width - EDGE))
+        top = Math.max(EDGE, Math.min(top, innerHeight - height - EDGE))
+        imageWindow.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`
+      }
+      function close () {
+        imageWindow.hidden = true
+        chip.setAttribute('aria-expanded', 'false')
+      }
+      chip.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') open(e.clientX, e.clientY) })
+      chip.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') close() })
+      // No pointer to hover with: a tap opens and closes it; the keyboard's focus opens it by the chip.
+      chip.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse') return
+        e.preventDefault()
+        imageWindow.hidden ? open(e.clientX, e.clientY) : close()
+      })
+      chip.addEventListener('focus', () => {
+        if (!chip.matches(':focus-visible')) return
+        const box = chip.getBoundingClientRect()
+        open(box.right, box.top)
+      })
+      chip.addEventListener('blur', close)
+      addEventListener('keydown', e => { if (e.key === 'Escape') close() })
+      addEventListener('scroll', close, { passive: true })
       document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => flash(b, b.dataset.copy, 'copied', 'copy failed')))
       render()
     })()
