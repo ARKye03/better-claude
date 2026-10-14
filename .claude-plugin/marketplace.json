@@ -18,8 +18,8 @@
     {
       "name": "use-haiku",
       "source": "./use-haiku",
-      "description": "Start a prompt with _ to run that turn on Haiku.",
-      "version": "0.1.0",
+      "description": "Start a prompt with _ to run that turn on Haiku, shown as you type, while it runs and under the answer.",
+      "version": "0.2.0",
       "category": "productivity"
     },
     {

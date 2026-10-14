@@ -1,7 +1,7 @@
 {
   "name": "use-haiku",
-  "version": "0.1.0",
-  "description": "Start a prompt with _ and that turn runs on Haiku. Other prompts keep the session's model.",
+  "version": "0.2.0",
+  "description": "Start a prompt with _ and that turn runs on Haiku, shown as you type, while it runs and under the answer.",
   "author": {
     "name": "Miguel Ángel Durán (midudev)",
     "url": "https://github.com/midudev"
@@ -9,5 +9,11 @@
   "homepage": "https://github.com/midudev/better-claude",
   "repository": "https://github.com/midudev/better-claude",
   "license": "MIT",
-  "keywords": ["haiku", "model", "prompt", "mod"]
+  "keywords": [
+    "haiku",
+    "model",
+    "prompt",
+    "mod"
+  ],
+  "types": "./types/index.d.ts"
 }
