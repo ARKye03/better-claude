@@ -10,6 +10,7 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 | **Token Meter** | Each turn's tokens and the session total, in color under the prompt. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
 | **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
 | **Image Preview** | Hover a pasted `[Image #N]` to see the picture, while you write and on the prompts you sent. | [`plugins/image-preview/`](plugins/image-preview/README.md) |
+| **Commit** | `/commit` splits your changes into Conventional Commits and pushes the current branch, on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
 
 ## Install
 
@@ -21,6 +22,7 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 /plugin install token-meter@better-claude
 /plugin install sub-meter@better-claude
 /plugin install image-preview@better-claude
+/plugin install commit@better-claude
 ```
 
 This repository is the marketplace: [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) lists each plugin folder as a source.
