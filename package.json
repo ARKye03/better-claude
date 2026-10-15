@@ -23,11 +23,11 @@
   },
   "scripts": {
     "test": "npm run test:node && npm run test:mod",
-    "test:node": "node --test \"after/test/*.test.js\"",
-    "test:mod": "claude plugin test ./after && claude plugin test ./use-haiku && claude plugin test ./think-hard && claude plugin test ./token-meter && claude plugin test ./sub-meter && claude plugin test ./image-preview",
-    "test:watch": "node --test --watch \"after/test/*.test.js\"",
-    "typecheck": "npx -y -p typescript@7 tsc -p after",
-    "validate": "claude plugin validate . && claude plugin validate ./after && claude plugin validate ./use-haiku && claude plugin validate ./think-hard && claude plugin validate ./token-meter && claude plugin validate ./sub-meter && claude plugin validate ./image-preview",
-    "eval": "node after/scripts/eval-haiku.js"
+    "test:node": "node --test \"plugins/after/test/*.test.js\"",
+    "test:mod": "claude plugin test ./plugins/after && claude plugin test ./plugins/use-haiku && claude plugin test ./plugins/think-hard && claude plugin test ./plugins/token-meter && claude plugin test ./plugins/sub-meter && claude plugin test ./plugins/image-preview",
+    "test:watch": "node --test --watch \"plugins/after/test/*.test.js\"",
+    "typecheck": "npx -y -p typescript@7 tsc -p plugins/after",
+    "validate": "claude plugin validate . && claude plugin validate ./plugins/after && claude plugin validate ./plugins/use-haiku && claude plugin validate ./plugins/think-hard && claude plugin validate ./plugins/token-meter && claude plugin validate ./plugins/sub-meter && claude plugin validate ./plugins/image-preview",
+    "eval": "node plugins/after/scripts/eval-haiku.js"
   }
 }

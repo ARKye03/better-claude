@@ -6,6 +6,7 @@ import { describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
+const REPO = path.join(ROOT, '..', '..')
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8')
 const readJson = (file) => JSON.parse(read(file))
 
@@ -20,9 +21,9 @@ function importGraph (file, seen = new Set()) {
 }
 
 describe('plugin wiring', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'package.json'), 'utf8'))
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
   const plugin = readJson('.claude-plugin/plugin.json')
-  const marketplace = JSON.parse(fs.readFileSync(path.join(ROOT, '..', '.claude-plugin', 'marketplace.json'), 'utf8'))
+  const marketplace = JSON.parse(fs.readFileSync(path.join(REPO, '.claude-plugin', 'marketplace.json'), 'utf8'))
   const hooks = readJson('hooks/hooks.json')
 
   test('versions and names agree everywhere', () => {
@@ -30,7 +31,7 @@ describe('plugin wiring', () => {
     assert.equal(plugin.version, pkg.version)
     const entry = marketplace.plugins.find((p) => p.name === plugin.name)
     assert.ok(entry, 'the repository marketplace lists after')
-    assert.equal(entry.source, './after')
+    assert.equal(entry.source, './plugins/after')
     assert.equal(entry.version, pkg.version)
   })
 

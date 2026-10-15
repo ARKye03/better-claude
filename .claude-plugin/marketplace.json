@@ -10,42 +10,42 @@
   "plugins": [
     {
       "name": "after",
-      "source": "./after",
+      "source": "./plugins/after",
       "description": "Queue prompts to run after the current task, without steering it.",
       "version": "0.2.0",
       "category": "productivity"
     },
     {
       "name": "use-haiku",
-      "source": "./use-haiku",
+      "source": "./plugins/use-haiku",
       "description": "Start a prompt with _ to run that turn on Haiku, shown as you type, while it runs and under the answer.",
       "version": "0.2.0",
       "category": "productivity"
     },
     {
       "name": "think-hard",
-      "source": "./think-hard",
+      "source": "./plugins/think-hard",
       "description": "Start a prompt with + and that turn thinks at max effort.",
       "version": "0.1.0",
       "category": "productivity"
     },
     {
       "name": "token-meter",
-      "source": "./token-meter",
+      "source": "./plugins/token-meter",
       "description": "Each turn's tokens and the session total, in color under the prompt.",
       "version": "0.1.0",
       "category": "productivity"
     },
     {
       "name": "sub-meter",
-      "source": "./sub-meter",
+      "source": "./plugins/sub-meter",
       "description": "Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar.",
       "version": "0.1.0",
       "category": "productivity"
     },
     {
       "name": "image-preview",
-      "source": "./image-preview",
+      "source": "./plugins/image-preview",
       "description": "Hover a pasted [Image #N] to see the picture: above the prompt while you write, and on the prompts you sent.",
       "version": "0.1.0",
       "category": "productivity"

@@ -137,7 +137,7 @@ Everything under `src/` is plain, dependency-free JavaScript with no Node APIs, 
 
 ## Development
 
-Run these from the repository root (the scripts in its `package.json` point into `after/`):
+Run these from the repository root (the scripts in its `package.json` point into `plugins/after/`):
 
 ```bash
 npm run test:node                # unit tests for src/ (node --test, no dependencies)
