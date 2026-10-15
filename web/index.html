@@ -426,11 +426,13 @@
       <li class="plugin">
         <div class="meta"><h2>Commit</h2><ul class="links"><li><a data-panel="source" href="https://github.com/midudev/better-claude/tree/main/plugins/commit"><svg aria-hidden="true"><use href="#i-source"/></svg><span>source</span></a></li><li><a data-panel="docs" href="https://github.com/midudev/better-claude/blob/main/plugins/commit/README.md"><svg aria-hidden="true"><use href="#i-docs"/></svg><span>docs</span></a></li><li><button type="button" data-install="commit"><svg aria-hidden="true"><use class="arrow" href="#i-arrow"/><use class="tray" href="#i-tray"/><use class="check" href="#i-check"/></svg><span>install</span></button></li></ul></div>
         <div class="body">
-          <p>Type <code class="accent">/commit</code> and Haiku 5.5 splits your changes into Conventional Commits, one per logical group, then pushes the current branch. No secrets staged, no Claude attribution.</p>
+          <p>Type <code class="accent">/commit</code>, pick commit + push, commit only or a new branch, and Haiku 5.5 splits your changes into Conventional Commits, one per logical group, on the branch you are on. No secrets staged, no Claude attribution.</p>
           <div class="demo" role="group" aria-label="Demo">
             <p class="line"><span class="p">❯ </span><span class="accent">/commit</span></p>
-            <p class="line"><span class="dim">  </span>refactor(repo): move plugins into plugins/</p>
-            <p class="line"><span class="dim">  </span>feat(web): show Image Preview and Sub Meter</p>
+            <p class="line">  <span class="accent">❯ 1. Commit + push (Recommended)</span></p>
+            <p class="line"><span class="dim">    2. Commit only</span></p>
+            <p class="line"><span class="dim">    3. Commit on a new branch</span></p>
+            <p class="line">  feat(web): add the docs panel<span class="dim"> · pushed to main</span></p>
           </div>
         </div>
       </li>
