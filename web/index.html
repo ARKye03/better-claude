@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>better-claude</title>
-  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: After, Use Haiku, Think Hard, Token Meter, Sub Meter and Image Preview.">
+  <meta name="description" content="Small plugins and mods that make your life (and Claude) better: Image Preview and Sub Meter.">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 18 18" shape-rendering="crispEdges"%3E%3Cpath fill="rgb(215,119,87)" d="M3 0h1v2h-1zM3 2h1v2h-1zM4 0h1v2h-1zM5 0h1v2h-1zM4 2h1v2h-1zM6 0h1v2h-1zM7 0h1v2h-1zM6 2h1v2h-1zM7 2h1v2h-1zM8 0h1v2h-1zM9 0h1v2h-1zM8 2h1v2h-1zM9 2h1v2h-1zM10 0h1v2h-1zM11 0h1v2h-1zM10 2h1v2h-1zM11 2h1v2h-1zM12 0h1v2h-1zM13 0h1v2h-1zM12 2h1v2h-1zM14 0h1v2h-1zM15 0h1v2h-1zM14 2h1v2h-1zM15 2h1v2h-1zM1 4h1v2h-1zM2 4h1v2h-1zM3 4h1v2h-1zM3 6h1v2h-1zM4 4h1v2h-1zM5 4h1v2h-1zM4 6h1v2h-1zM5 6h1v2h-1zM6 4h1v2h-1zM7 4h1v2h-1zM6 6h1v2h-1zM7 6h1v2h-1zM8 4h1v2h-1zM9 4h1v2h-1zM8 6h1v2h-1zM9 6h1v2h-1zM10 4h1v2h-1zM11 4h1v2h-1zM10 6h1v2h-1zM11 6h1v2h-1zM12 4h1v2h-1zM13 4h1v2h-1zM12 6h1v2h-1zM13 6h1v2h-1zM14 4h1v2h-1zM15 4h1v2h-1zM14 6h1v2h-1zM15 6h1v2h-1zM16 4h1v2h-1zM17 4h1v2h-1zM3 8h1v2h-1zM5 8h1v2h-1zM13 8h1v2h-1zM15 8h1v2h-1z"/%3E%3C/svg%3E'>
@@ -112,6 +112,7 @@
 
     /* Plugins */
     .plugins { list-style: none; margin: 88px 0 0; padding: 0; counter-reset: plugin; }
+    .plugin[hidden] { display: none; }
     .plugin {
       display: grid;
       grid-template-columns: 200px 1fr;
@@ -182,6 +183,7 @@
     .foot-bottom { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid var(--line); color: #474747; }
     .foot-bottom a { transition: color .2s; }
     .foot-bottom a:hover { color: var(--clawd); }
+    .heart { width: 14px; height: 12px; vertical-align: -1px; fill: var(--clawd); shape-rendering: crispEdges; }
 
     @media (max-width: 640px) {
       main { padding-top: 64px; }
@@ -203,10 +205,10 @@
         <ul class="picks">
           <li><button type="button" class="pick" data-plugin="image-preview" aria-pressed="true">Image Preview</button></li>
           <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
-          <li><button type="button" class="pick" data-plugin="after" aria-pressed="true">After</button></li>
-          <li><button type="button" class="pick" data-plugin="use-haiku" aria-pressed="true">Use Haiku</button></li>
-          <li><button type="button" class="pick" data-plugin="think-hard" aria-pressed="true">Think Hard</button></li>
-          <li><button type="button" class="pick" data-plugin="token-meter" aria-pressed="true">Token Meter</button></li>
+          <li hidden><button type="button" class="pick" data-plugin="after" aria-pressed="true">After</button></li>
+          <li hidden><button type="button" class="pick" data-plugin="use-haiku" aria-pressed="true">Use Haiku</button></li>
+          <li hidden><button type="button" class="pick" data-plugin="think-hard" aria-pressed="true">Think Hard</button></li>
+          <li hidden><button type="button" class="pick" data-plugin="token-meter" aria-pressed="true">Token Meter</button></li>
         </ul>
         <div class="cta">
           <button type="button" class="primary" id="copy-prompt">Copy install prompt</button>
@@ -221,7 +223,7 @@
 
     <ol class="plugins">
       <li class="plugin">
-        <div class="meta"><h2>Image Preview</h2><span class="tag">hover</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/image-preview">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/image-preview/README.md">docs</a></p></div>
+        <div class="meta"><h2>Image Preview</h2><span class="tag">hover</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/image-preview">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/image-preview/README.md">docs</a></p></div>
         <div class="body">
           <p>Hover a pasted <code class="accent">[Image #1]</code>, while you write or in a prompt you sent, and the picture opens in a small window by the pointer. Click it to open it in Preview.</p>
           <p class="line"><button type="button" class="image-chip" id="image-chip" aria-describedby="image-window">[Image #1]</button><span class="dim"> hover to preview</span></p>
@@ -230,7 +232,7 @@
       </li>
 
       <li class="plugin">
-        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/sub-meter/README.md">docs</a></p></div>
+        <div class="meta"><h2>Sub Meter</h2><span class="tag">footer</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/sub-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/sub-meter/README.md">docs</a></p></div>
         <div class="body">
           <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
           <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span id="sub-meter"><span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
@@ -238,8 +240,8 @@
         </div>
       </li>
 
-      <li class="plugin">
-        <div class="meta"><h2>After</h2><span class="tag">/after</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/after">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/after/README.md">docs</a></p></div>
+      <li class="plugin" hidden>
+        <div class="meta"><h2>After</h2><span class="tag">/after</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/after">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/after/README.md">docs</a></p></div>
         <div class="body">
           <p>A prompt queue. Keep typing while Claude works: <code>/after &lt;task&gt;</code> runs it when the current task is done, without steering it.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">/after</span> update the README</p>
@@ -247,8 +249,8 @@
         </div>
       </li>
 
-      <li class="plugin">
-        <div class="meta"><h2>Use Haiku</h2><span class="tag">prefix _</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/use-haiku">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/use-haiku/README.md">docs</a></p></div>
+      <li class="plugin" hidden>
+        <div class="meta"><h2>Use Haiku</h2><span class="tag">prefix _</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/use-haiku">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/use-haiku/README.md">docs</a></p></div>
         <div class="body">
           <p>Start a prompt with <code class="accent">_</code> and that turn runs on Haiku, its subagents too. You see it as you type, on the spinner and under the answer. Every other prompt keeps the session's model.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">_</span>summarize the last commit</p>
@@ -256,8 +258,8 @@
         </div>
       </li>
 
-      <li class="plugin">
-        <div class="meta"><h2>Think Hard</h2><span class="tag">prefix +</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/think-hard">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/think-hard/README.md">docs</a></p></div>
+      <li class="plugin" hidden>
+        <div class="meta"><h2>Think Hard</h2><span class="tag">prefix +</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/think-hard">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/think-hard/README.md">docs</a></p></div>
         <div class="body">
           <p>Start a prompt with <code class="accent">+</code> and that turn thinks at max effort. Every other prompt keeps the session's effort.</p>
           <p class="line"><span class="p">❯ </span><span class="accent">+</span>plan the refactor of the parser</p>
@@ -265,8 +267,8 @@
         </div>
       </li>
 
-      <li class="plugin">
-        <div class="meta"><h2>Token Meter</h2><span class="tag">hint line</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/token-meter/README.md">docs</a></p></div>
+      <li class="plugin" hidden>
+        <div class="meta"><h2>Token Meter</h2><span class="tag">hint line</span><p class="links"><a href="https://github.com/midudev/better-claude/tree/main/plugins/token-meter">source</a> · <a href="https://github.com/midudev/better-claude/blob/main/plugins/token-meter/README.md">docs</a></p></div>
         <div class="body">
           <p>After each turn, the line under the prompt ends with its tokens and the session's running total, in color.</p>
           <p class="line"><span class="up">↑</span> 1.2k  <span class="down">↓</span> 340  <span class="accent">cache</span> 4.1k<span class="dim">  ·  session ↑ 1.2k  ↓ 340</span></p>
@@ -291,8 +293,7 @@
       <p class="legal"><strong>Not affiliated with Anthropic.</strong> better-claude is an independent, community project by Miguel Ángel Durán (midudev). It is not affiliated with, endorsed by or sponsored by Anthropic, PBC. Claude and Claude Code are trademarks of Anthropic. The pixel character on this page is Clawd, Claude Code's mascot, drawn from the glyphs Claude Code shows in the terminal; it belongs to Anthropic and appears here only to refer to the tool these plugins extend. The plugins are provided as is, without warranty of any kind: you install and run them at your own risk.</p>
 
       <div class="foot-bottom">
-        <span>Code under the <a href="https://github.com/midudev/better-claude/blob/main/LICENSE">MIT License</a> · © 2026 Miguel Ángel Durán</span>
-        <span>Geist fonts under the <a href="https://github.com/vercel/geist-font/blob/main/OFL.txt">SIL Open Font License</a></span>
+        <span>Code under the <a href="https://github.com/midudev/better-claude/blob/main/LICENSE">MIT License</a> · by midudev with <svg class="heart" viewBox="0 0 7 6" role="img" aria-label="love"><path d="M1 0h2v1h-2zM4 0h2v1h-2zM0 1h7v2h-7zM1 3h5v1h-5zM2 4h3v1h-3zM3 5h1v1h-1z"/></svg></span>
       </div>
     </footer>
   </main>
@@ -390,7 +391,7 @@
       }
 
       // Install prompt: every plugin picked by default
-      const picks = [...document.querySelectorAll('.pick')]
+      const picks = [...document.querySelectorAll('.picks li:not([hidden]) .pick')]
       const out = document.getElementById('prompt')
       const copyPrompt = document.getElementById('copy-prompt')
 
