@@ -8,7 +8,7 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 | --- | --- | --- |
 | **Image Preview** | Hover a pasted `[Image #N]` to see the picture, while you write and on the prompts you sent. | [`plugins/image-preview/`](plugins/image-preview/README.md) |
 | **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
-| **Commit** | `/commit` splits your changes into Conventional Commits and pushes the current branch, on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
+| **Commit** | `/commit` asks commit + push, commit only or a new branch, then splits your changes into Conventional Commits, on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
 
 <!-- Hidden until they are on the web:
 | **After** | A prompt queue: `/after <task>` runs it when Claude finishes, without steering it. | [`plugins/after/`](plugins/after/README.md) |

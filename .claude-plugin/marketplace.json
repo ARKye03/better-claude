@@ -53,8 +53,8 @@
     {
       "name": "commit",
       "source": "./plugins/commit",
-      "description": "/commit splits your changes into Conventional Commits and pushes the current branch, on Haiku 5.5.",
-      "version": "0.1.0",
+      "description": "/commit asks commit + push, commit only or a new branch, then splits your changes into Conventional Commits on Haiku 5.5.",
+      "version": "0.2.0",
       "category": "productivity"
     }
   ]

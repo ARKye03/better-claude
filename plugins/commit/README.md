@@ -1,16 +1,28 @@
 # Commit
 
-A Claude Code command: `/commit` splits your changes into Conventional Commits, one per logical group, and pushes the current branch. It runs on Haiku 5.5 (`claude-haiku-5-5`), whatever model the session uses.
+A Claude Code command: `/commit` asks what to do, then splits your changes into Conventional Commits, one per logical group, on the branch you are on. It runs on Haiku 5.5 (`claude-haiku-5-5`), whatever model the session uses.
 
 ```text
 ❯ /commit
+
+  Commit: what to do with these changes?
+  ❯ 1. Commit + push (Recommended)
+    2. Commit only
+    3. Commit on a new branch
 ```
 
-- Reads `git status` and `git diff HEAD` before Claude starts.
+| Choice | What it does |
+| --- | --- |
+| **Commit + push** (recommended) | Commits on the current branch, `main` included, and pushes it. |
+| **Commit only** | Commits on the current branch and stops there. |
+| **Commit on a new branch** | Creates a branch named after the changes (`feat/side-panel`), commits there and pushes it. |
+
+- Reads the branch, `git status` and `git diff HEAD` before Claude starts.
+- Never creates or switches branches unless you pick **Commit on a new branch**.
 - Stages only each group's files, never `.env*` or secrets, and commits as `type(scope): summary`: English, imperative, under 72 characters, with a body only when the why is not obvious.
 - Never adds `Co-Authored-By` or any Claude or Anthropic attribution.
 - Pushes with `git push -u origin HEAD`. With no remote, or a failed push, it reports the error and stops.
-- Runs `git` and nothing else (`allowed-tools: Bash(git *)`).
+- Runs `git` and asks its one question, nothing else (`allowed-tools: Bash(git *), AskUserQuestion`). Where it cannot ask, as in `claude -p "/commit"`, it commits and pushes.
 
 ## Install
 
@@ -21,7 +33,7 @@ A Claude Code command: `/commit` splits your changes into Conventional Commits, 
 
 ## How it works
 
-One command file ([`commands/commit.md`](commands/commit.md)): its frontmatter picks the model and the allowed tools, and its `` !`git …` `` lines put the status and the diff in the prompt.
+One command file ([`commands/commit.md`](commands/commit.md)): its frontmatter picks the model and the allowed tools, and its `` !`git …` `` lines put the branch, the status and the diff in the prompt.
 
 ## Development
 
