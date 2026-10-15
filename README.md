@@ -1,5 +1,7 @@
 # better-claude
 
+![better-claude: Clawd over the title, the plugins to pick and the Copy install prompt button](.github/hero.png)
+
 Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plugins):
 
 | Plugin | What it does | Folder |
