@@ -1,6 +1,6 @@
 # better-claude
 
-![better-claude: Clawd over the title, the plugins to pick and the Copy install prompt button](.github/hero.png)
+<img width="1590" height="576" alt="CleanShot 2026-10-15 at 14 38 45@2x" src="https://github.com/user-attachments/assets/67b271e6-254e-4429-9273-9571fe98f79b" />
 
 Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plugins):
 
