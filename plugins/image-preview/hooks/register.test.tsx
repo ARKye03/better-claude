@@ -39,9 +39,9 @@ function bmp (rows: number[][]) {
  */
 function world (
   on: On,
-  { files = { '1.png': 300 * 1024 }, draft = '', env = {}, window = 'shown', system = 'Darwin', uid = '501' }: { files?: Record<string, number>; draft?: string; env?: Record<string, string>; window?: 'shown' | 'error'; system?: string; uid?: string } = {}
+  { files = { '1.png': 300 * 1024 }, draft = '', env = {}, window = 'shown', system = 'Darwin', temp = '/tmp/claude-501' }: { files?: Record<string, number>; draft?: string; env?: Record<string, string>; window?: 'shown' | 'error'; system?: string; temp?: string } = {}
 ) {
-  const folder = `/tmp/claude-${uid}/-project-app/s-1`
+  const folder = `${temp}/-project-app/s-1`
   const box = { text: draft }
   const session = { id: 's-1' }
   const clock = mock.clock(on, { now: 0 })
@@ -54,9 +54,9 @@ function world (
   on('prompt.read', () => ({ value: { text: box.text, cursor: box.text.length } }))
   on('process.run', ($, e) => {
     runs.push([...e.argv])
-    return { value: { exitCode: 0, stdout: e.argv[0] === 'id' ? `${uid}\n` : e.argv[0] === 'uname' ? `${system}\n` : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    return { value: { exitCode: 0, stdout: e.argv[0] === 'id' ? '501\n' : e.argv[0] === 'uname' ? `${system}\n` : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('fs.exists', ($, e) => ({ value: e.path === `/tmp/claude-${uid}/-project-app/${session.id}/images` && session.id === 's-1' }))
+  on('fs.exists', ($, e) => ({ value: e.path === `${temp}/-project-app/${session.id}/images` && session.id === 's-1' }))
   on('fs.list', ($, e) => ({
     value: e.path === `${folder}/images`
       ? Object.entries(files).map(([name, size]) => ({ name, kind: 'file' as const, size, mtimeMs: 0, isLink: false }))
@@ -564,25 +564,38 @@ test('on Linux with no display the terminal draws the card', async ($, on) => {
   expect(await ui.find({ key: 'image-1' })).toMatchObject({ type: 'Raster' })
 })
 
-test('on Windows the window is PowerShell\'s, the images found under claude-0, never converted by the system\'s convert', async ($, on) => {
-  const w = world(on, { draft: '[Image #1]', system: '', uid: '0', env: { OS: 'Windows_NT' } })
+// %TEMP%, as a path the engine under test (on macOS or Linux) can resolve.
+const TEMP = '/Users/me/AppData/Local/Temp'
+
+test('on Windows the window is PowerShell\'s, the images found under %TEMP%\\claude, never converted by the system\'s convert', async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', system: '', temp: `${TEMP}/claude`, env: { OS: 'Windows_NT', TEMP } })
   await startSession($)
   await w.clock.settle()
   const ui = await band($)
   await point(ui, 'chip:1')
   await w.clock.advance(100)
   expect(w.windows[0]!.argv.slice(0, 6)).toEqual(['powershell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand'])
-  expect(w.windows[0]!.env.IMAGE_PREVIEW_FILE).toBe('/tmp/claude-0/-project-app/s-1/images/1.png')
+  expect(w.windows[0]!.env.IMAGE_PREVIEW_FILE).toBe(`${TEMP}/claude/-project-app/s-1/images/1.png`)
   expect(w.runs.some(argv => argv[0] === 'id' || argv[0] === 'convert' || argv[0] === 'mkdir')).toBe(false)
 })
 
+test('on Windows the images are found under CLAUDE_CODE_TMPDIR\\claude when it is set', async ($, on) => {
+  const w = world(on, { draft: '[Image #1]', system: '', temp: '/d/tmp/claude', env: { OS: 'Windows_NT', TEMP, CLAUDE_CODE_TMPDIR: '/d/tmp\\' } })
+  await startSession($)
+  await w.clock.settle()
+  const ui = await band($)
+  await point(ui, 'chip:1')
+  await w.clock.advance(100)
+  expect(w.windows[0]!.env.IMAGE_PREVIEW_FILE).toBe('/d/tmp/claude/-project-app/s-1/images/1.png')
+})
+
 test('on Windows a click opens the image in its own viewer', async ($, on) => {
-  const w = world(on, { draft: '[Image #1]', system: '', uid: '0', env: { OS: 'Windows_NT' } })
+  const w = world(on, { draft: '[Image #1]', system: '', temp: `${TEMP}/claude`, env: { OS: 'Windows_NT', TEMP } })
   await startSession($)
   await w.clock.settle()
   const ui = await band($)
   await ui.pointer({ type: 'down', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await ui.pointer({ type: 'up', x: 2, y: 0, button: 'left', in: 'chip:1' })
   await w.clock.settle()
-  expect(w.runs).toContainEqual(['explorer', '\\tmp\\claude-0\\-project-app\\s-1\\images\\1.png'])
+  expect(w.runs).toContainEqual(['explorer', '\\Users\\me\\AppData\\Local\\Temp\\claude\\-project-app\\s-1\\images\\1.png'])
 })

@@ -65,7 +65,8 @@ const sizeOf = (bytes: number) =>
 let graphics: 'none' | 'file' | 'bytes' = 'none'
 let sessionId: string | undefined
 let folder: string | undefined
-let uid: string | undefined
+// Claude Code's temp folder for every session of this user.
+let temp: string | undefined
 type Platform = 'macos' | 'linux' | 'windows' | 'other'
 // The system the session runs on: what converts, opens and shows a picture there.
 let platform: Promise<Platform> | undefined
@@ -126,16 +127,28 @@ async function follow ($: Engine) {
 }
 
 /**
+ * Claude Code's temp folder: `<CLAUDE_CODE_TMPDIR or /tmp>/claude-<uid>`. Windows has no uid: there
+ * it is `<CLAUDE_CODE_TMPDIR or the system's temp folder>\claude`.
+ */
+async function tempFolder ($: Engine) {
+  if ((await platformOf($)) !== 'windows') {
+    const base = ((await $.env.get('CLAUDE_CODE_TMPDIR')) || '/tmp').replace(/\/+$/, '')
+    return `${base}/claude-${(await $.process.run(['id', '-u'])).stdout.trim()}`
+  }
+  // The system's temp folder as Node finds it: %TEMP%, %TMP%, or the one in Windows' own folder.
+  const system = (await $.env.get('TEMP')) || (await $.env.get('TMP')) || `${(await $.env.get('SystemRoot')) || 'C:\\Windows'}\\temp`
+  const base = ((await $.env.get('CLAUDE_CODE_TMPDIR')) || system).replace(/[\\/]+$/, '')
+  return `${base}/claude`
+}
+
+/**
  * Claude Code's temp folder for this session, where a pasted image is stored as
- * `images/<N>.<ext>`: `<CLAUDE_CODE_TMPDIR or /tmp>/claude-<uid>/<project path, dashed>/<session id>`.
+ * `images/<N>.<ext>`: `<temp folder>/<project path, dashed>/<session id>`.
  */
 async function sessionFolder ($: Engine) {
   if (folder) return folder
   const id = await $.session.id()
-  const base = ((await $.env.get('CLAUDE_CODE_TMPDIR')) || '/tmp').replace(/\/+$/, '')
-  // Windows has no uid: Claude Code names its folder `claude-0` there.
-  uid ??= (await platformOf($)) === 'windows' ? '0' : (await $.process.run(['id', '-u'])).stdout.trim()
-  const root = `${base}/claude-${uid}`
+  const root = (temp ??= await tempFolder($))
   const names = new Set([await $.session.root(), await $.session.cwd()].map(path => path.replace(/[^a-zA-Z0-9]/g, '-')))
   for (const name of names) {
     if (await $.fs.exists(`${root}/${name}/${id}/images`)) return (folder = `${root}/${name}/${id}`)

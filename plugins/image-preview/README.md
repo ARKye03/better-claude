@@ -62,7 +62,7 @@ Warp speaks the kitty graphics protocol, but not the Unicode placeholders Claude
 - A click opens the image with `open -a Preview` on macOS, `explorer` on Windows, `xdg-open` elsewhere.
 - On Linux the window needs X11 (or XWayland): under Wayland alone there is none, and the terminal draws the card. Under XWayland the window may not stand by the pointer when the terminal is a Wayland window.
 - On Windows the first window compiles a small helper into the temp folder, which takes a second. The Windows window and converter have been written and checked (the scripts parse, the commands are tested) but not yet run on Windows.
-- It reads the images Claude Code stores for the session, in its temp folder (`<CLAUDE_CODE_TMPDIR or /tmp>/claude-<uid>/…/images`), and keeps its shrunk copies in an `image-preview` folder beside them. Images from a session started before you installed the mod are found too; images from another session are not.
+- It reads the images Claude Code stores for the session, in its temp folder (`<CLAUDE_CODE_TMPDIR or /tmp>/claude-<uid>/…/images`; on Windows `<CLAUDE_CODE_TMPDIR or %TEMP%>\claude\…\images`), and keeps its shrunk copies in an `image-preview` folder beside them. Images from a session started before you installed the mod are found too; images from another session are not.
 - A session resumed with `--continue` draws its rows all at once, its prompts apart from the rest; the mod puts them back in order by turns. A turn with no `done` line (one interrupted) can put a card a few rows off.
 - It shrinks the picture with `sips` on macOS, ImageMagick (`magick` or `convert`) on Linux, and ImageMagick or PowerShell on Windows. Without them, the card says it cannot read it.
 
