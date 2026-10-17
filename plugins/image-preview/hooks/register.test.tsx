@@ -34,6 +34,12 @@ function bmp (rows: number[][]) {
 }
 
 /**
+ * The path as the mocked session wrote it. A Windows host hands the handlers `C:\tmp\claude-501\...`
+ * for the `/tmp/claude-501/...` the mod asked about, so the world compares them the POSIX way.
+ */
+const posix = (path: string) => path.replace(/^[A-Za-z]:(?=[\\/])/, '').replaceAll('\\', '/')
+
+/**
  * Everything beneath the mod: the session, its temp folder with the stored images, the prompt box,
  * sips, and what the engine draws. (A test cannot type into the box: the draft is there at start.)
  */
@@ -56,14 +62,14 @@ function world (
     runs.push([...e.argv])
     return { value: { exitCode: 0, stdout: e.argv[0] === 'id' ? '501\n' : e.argv[0] === 'uname' ? `${system}\n` : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('fs.exists', ($, e) => ({ value: e.path === `${temp}/-project-app/${session.id}/images` && session.id === 's-1' }))
+  on('fs.exists', ($, e) => ({ value: posix(e.path) === `${temp}/-project-app/${session.id}/images` && session.id === 's-1' }))
   on('fs.list', ($, e) => ({
-    value: e.path === `${folder}/images`
+    value: posix(e.path) === `${folder}/images`
       ? Object.entries(files).map(([name, size]) => ({ name, kind: 'file' as const, size, mtimeMs: 0, isLink: false }))
       : []
   }))
-  on('fs.stat', ($, e) => ({ value: { kind: 'file' as const, size: files[e.path.split('/').pop()!] ?? 0, mtimeMs: 0, isLink: false } }))
-  on('fs.read', ($, e) => ({ value: { base64: e.path.endsWith('.png') ? PNG : bmp([[RED, RED], [BLUE, BLUE]]).toBase64() } }))
+  on('fs.stat', ($, e) => ({ value: { kind: 'file' as const, size: files[posix(e.path).split('/').pop()!] ?? 0, mtimeMs: 0, isLink: false } }))
+  on('fs.read', ($, e) => ({ value: { base64: posix(e.path).endsWith('.png') ? PNG : bmp([[RED, RED], [BLUE, BLUE]]).toBase64() } }))
   on('prompt.submit', ($, e) => ({ text: e.text }))
   // A window's program: it says `shown` (or an error), then `.` every tenth of a second till it is ended.
   const windows: { argv: string[]; env: Record<string, string>; isEnded: boolean }[] = []
