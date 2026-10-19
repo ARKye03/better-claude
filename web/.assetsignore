@@ -5,3 +5,4 @@ wrangler.jsonc
 fonts/src
 fonts/subset.py
 .DS_Store
+narrator/record.swift

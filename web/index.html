@@ -4,15 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>better-claude</title>
-  <meta name="description" content="Small plugins and mods that make your life (and Claude Code) better: Image Preview, Sub Meter and Commit.">
+  <meta name="description" content="Small plugins and mods that make your life (and Claude Code) better: Image Preview, Sub Meter, Commit and Narrator.">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 18 18" shape-rendering="crispEdges"%3E%3Cpath fill="rgb(215,119,87)" d="M3 0h1v2h-1zM3 2h1v2h-1zM4 0h1v2h-1zM5 0h1v2h-1zM4 2h1v2h-1zM6 0h1v2h-1zM7 0h1v2h-1zM6 2h1v2h-1zM7 2h1v2h-1zM8 0h1v2h-1zM9 0h1v2h-1zM8 2h1v2h-1zM9 2h1v2h-1zM10 0h1v2h-1zM11 0h1v2h-1zM10 2h1v2h-1zM11 2h1v2h-1zM12 0h1v2h-1zM13 0h1v2h-1zM12 2h1v2h-1zM14 0h1v2h-1zM15 0h1v2h-1zM14 2h1v2h-1zM15 2h1v2h-1zM1 4h1v2h-1zM2 4h1v2h-1zM3 4h1v2h-1zM3 6h1v2h-1zM4 4h1v2h-1zM5 4h1v2h-1zM4 6h1v2h-1zM5 6h1v2h-1zM6 4h1v2h-1zM7 4h1v2h-1zM6 6h1v2h-1zM7 6h1v2h-1zM8 4h1v2h-1zM9 4h1v2h-1zM8 6h1v2h-1zM9 6h1v2h-1zM10 4h1v2h-1zM11 4h1v2h-1zM10 6h1v2h-1zM11 6h1v2h-1zM12 4h1v2h-1zM13 4h1v2h-1zM12 6h1v2h-1zM13 6h1v2h-1zM14 4h1v2h-1zM15 4h1v2h-1zM14 6h1v2h-1zM15 6h1v2h-1zM16 4h1v2h-1zM17 4h1v2h-1zM3 8h1v2h-1zM5 8h1v2h-1zM13 8h1v2h-1zM15 8h1v2h-1z"/%3E%3C/svg%3E'>
-  <link rel="preload" href="fonts/geist-mono-5a9ccb88.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/geist-mono-727f8a0a.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     /* Both fonts are cut down to what the page shows by fonts/subset.py: rerun it after changing the text. */
-    @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-5a9ccb88.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
+    @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-727f8a0a.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
     @font-face { font-family: "Geist Pixel"; src: url(data:font/woff2;base64,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) format("woff2"); font-display: block; }
+    @font-face { font-family: "Caveat"; src: url(data:font/woff2;base64,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) format("woff2"); font-display: block; }
     /* Menlo sized to Geist Mono's box, so the swap does not move the text */
     @font-face { font-family: "Geist Mono Fallback"; src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"); size-adjust: 99.66%; ascent-override: 100.84%; descent-override: 29.6%; line-gap-override: 0%; }
 
@@ -174,6 +175,37 @@
     }
     .image-window[hidden] { display: none; }
     .image-window img { display: block; width: min(480px, calc(100vw - 44px)); height: auto; }
+    /* Narrator: the switch at the footer's right end, green on and gray off, inverted under the
+       pointer as the terminal draws a control in focus. What it says lights up as it is said. */
+    .voice {
+      padding: 0; border: 0; background: none;
+      font: inherit; color: var(--soft);
+      cursor: pointer;
+    }
+    .voice[aria-pressed="true"] { color: #87d787; }
+    .voice:hover { background: var(--soft); color: #000; }
+    .voice[aria-pressed="true"]:hover { background: #87d787; }
+    .body .narration { color: var(--muted); }
+    .body .narration .said { color: var(--soft); }
+    /* A note in the margin, hand-written, its arrow drawn as the demo comes into view; gone once tried. */
+    #narrator-demo { margin-bottom: 30px; }
+    .try {
+      position: absolute; top: calc(100% - 14px); right: 0;
+      width: 210px; height: 70px;
+      color: var(--clawd);
+      pointer-events: none;
+      transition: opacity .4s;
+    }
+    .try svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .try path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+    .try span { position: absolute; left: 4px; bottom: 0; font: 500 25px/1 "Caveat", cursive; transform: rotate(-7deg); white-space: nowrap; }
+    .try.is-waiting path { stroke-dashoffset: 1; }
+    .try.is-waiting span { opacity: 0; }
+    .try.is-drawn path { transition: stroke-dashoffset .9s var(--ease); }
+    .try.is-drawn .head { transition-delay: .75s; transition-duration: .25s; }
+    .try.is-drawn span { transition: opacity .5s .2s; }
+    [data-tried] .try { opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .try.is-waiting path { stroke-dashoffset: 0; } .try.is-waiting span { opacity: 1; } }
     /* Source, docs and install: one per line, a pixel icon each. On hover the icon lights and
        nudges toward where the link goes, and a hairline draws under the label. */
     .meta .links { display: grid; justify-items: start; gap: 2px; margin: 14px 0 0 30px; padding: 0; list-style: none; font-size: 12px; }
@@ -386,6 +418,7 @@
           <li><button type="button" class="pick" data-plugin="image-preview" aria-pressed="true">Image Preview</button></li>
           <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
           <li><button type="button" class="pick" data-plugin="commit" aria-pressed="true">Commit</button></li>
+          <li><button type="button" class="pick" data-plugin="narrator" aria-pressed="true">Narrator</button></li>
           <li hidden><button type="button" class="pick" data-plugin="after" aria-pressed="true">After</button></li>
           <li hidden><button type="button" class="pick" data-plugin="use-haiku" aria-pressed="true">Use Haiku</button></li>
           <li hidden><button type="button" class="pick" data-plugin="think-hard" aria-pressed="true">Think Hard</button></li>
@@ -433,6 +466,23 @@
             <p class="line"><span class="dim">    2. Commit only</span></p>
             <p class="line"><span class="dim">    3. Commit on a new branch</span></p>
             <p class="line">  feat(web): add the docs panel<span class="dim"> · pushed to main</span></p>
+          </div>
+        </div>
+      </li>
+
+      <li class="plugin">
+        <div class="meta"><h2>Narrator</h2><ul class="links"><li><a data-panel="source" href="https://github.com/midudev/better-claude/tree/main/plugins/narrator"><svg aria-hidden="true"><use href="#i-source"/></svg><span>source</span></a></li><li><a data-panel="docs" href="https://github.com/midudev/better-claude/blob/main/plugins/narrator/README.md"><svg aria-hidden="true"><use href="#i-docs"/></svg><span>docs</span></a></li><li><button type="button" data-install="narrator"><svg aria-hidden="true"><use class="arrow" href="#i-arrow"/><use class="tray" href="#i-tray"/><use class="check" href="#i-check"/></svg><span>install</span></button></li></ul></div>
+        <div class="body">
+          <p>Click <code class="accent">⏸︎ narrator off</code> at the bottom right, or type <code class="accent">/narrator</code>, and after each turn Claude tells you out loud what it did, in the language you wrote in, with the best free voice your system has: Siri's on macOS, Narrator's on Windows, speech-dispatcher's on Linux.</p>
+          <div class="demo" role="group" aria-label="Demo" id="narrator-demo">
+            <p class="line"><span class="p">❯ </span>add a dark mode toggle to the settings</p>
+            <p class="line"><span class="accent">⏺</span> Added the toggle to <code>settings/page.tsx</code>. It remembers your choice, and the 12 tests pass.</p>
+            <p class="line narration" data-lang="en" hidden>I added a dark mode switch to the settings page. It remembers what you pick, and all twelve tests pass.</p>
+            <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><button type="button" class="voice" id="voice" aria-pressed="false">⏸︎ narrator off</button></p>
+            <div class="try is-waiting" id="try" aria-hidden="true">
+              <svg viewBox="0 0 210 70"><path pathLength="1" d="M91 52c9 3 19 2 27-3c9-6 13-15 15-24c1-6 1-11 1-19"/><path class="head" pathLength="1" d="M127 13c3-3 5-6 7-9c2 3 4 6 7 9"/></svg>
+              <span>try this!</span>
+            </div>
           </div>
         </div>
       </li>
@@ -720,6 +770,92 @@
       chip.addEventListener('blur', close)
       addEventListener('keydown', e => { if (e.key === 'Escape') close() })
       addEventListener('scroll', close, { passive: true })
+      // Narrator: the switch turns it on and Claude says what the turn did. A browser cannot reach the
+      // Siri voices, so the clip was recorded with the best one (narrator/record.swift); where it cannot
+      // play, the browser's own voice reads the line.
+      const narratorDemo = document.getElementById('narrator-demo')
+      const voice = document.getElementById('voice')
+      const tryIt = document.getElementById('try')
+      const narration = narratorDemo.querySelector('.narration')
+      const said = narration.textContent.trim()
+      narration.setAttribute('aria-hidden', 'true')
+      const clip = new Audio()
+      clip.preload = 'none'
+      clip.src = 'narrator/en.m4a'
+      let lit = -1
+      let following = 0
+
+      // The note's arrow draws itself the first time the demo is in view.
+      if ('IntersectionObserver' in window && !reduce) {
+        const watch = new IntersectionObserver(([entry]) => {
+          if (!entry.isIntersecting) return
+          watch.disconnect()
+          tryIt.classList.add('is-drawn')
+          requestAnimationFrame(() => requestAnimationFrame(() => tryIt.classList.remove('is-waiting')))
+        }, { threshold: 1 })
+        watch.observe(narratorDemo)
+      } else {
+        tryIt.classList.remove('is-waiting')
+      }
+
+      // What has been said so far shows brighter than what is still to come.
+      function light (count) {
+        const at = Math.max(0, Math.min(said.length, Math.round(count)))
+        if (at === lit) return
+        lit = at
+        const spoken = document.createElement('span')
+        spoken.className = 'said'
+        spoken.textContent = said.slice(0, at)
+        narration.replaceChildren(spoken, said.slice(at))
+      }
+      function follow () {
+        if (clip.duration > 0) light(said.length * clip.currentTime / clip.duration)
+        following = clip.paused ? 0 : requestAnimationFrame(follow)
+      }
+      function setVoice (on) {
+        voice.setAttribute('aria-pressed', String(on))
+        voice.textContent = on ? '⏵ narrator on' : '⏸︎ narrator off'
+      }
+
+      // The browser's own synthesizer, the best English voice it has, lit word by word.
+      function speakInBrowser () {
+        if (!('speechSynthesis' in window)) return
+        const voices = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('en'))
+        const rank = v => (/siri/i.test(v.name) ? 8 : 0) + (/premium|enhanced|natural|neural/i.test(v.name) ? 4 : 0) + (v.localService ? 0 : 2) + (v.lang === 'en-US' ? 1 : 0)
+        const utterance = new SpeechSynthesisUtterance(said)
+        utterance.lang = 'en-US'
+        utterance.voice = voices.sort((a, b) => rank(b) - rank(a))[0] ?? null
+        utterance.onboundary = e => light(e.charIndex + (e.charLength || 0))
+        utterance.onend = () => light(said.length)
+        speechSynthesis.cancel()
+        speechSynthesis.speak(utterance)
+      }
+
+      function silence () {
+        clip.pause()
+        cancelAnimationFrame(following)
+        if ('speechSynthesis' in window) speechSynthesis.cancel()
+      }
+
+      // Loaded once the pointer or the focus comes near, so a visit that never plays it costs nothing.
+      const warm = () => { if (clip.preload === 'none') { clip.preload = 'auto'; clip.load() } }
+      voice.addEventListener('pointerenter', warm)
+      voice.addEventListener('focus', warm)
+      // Off by default; on, it says what the turn did. Off again stops it.
+      voice.addEventListener('click', () => {
+        const on = voice.getAttribute('aria-pressed') !== 'true'
+        setVoice(on)
+        silence()
+        narration.hidden = !on
+        if (!on) return
+        narratorDemo.dataset.tried = ''
+        lit = -1
+        light(0)
+        clip.currentTime = 0
+        clip.play().then(follow, speakInBrowser)
+      })
+      clip.addEventListener('ended', () => light(said.length))
+
       // Each plugin's install: the same prompt for that plugin alone, and a toast that says where it goes.
       const toast = document.getElementById('toast')
       let toastTimer = 0

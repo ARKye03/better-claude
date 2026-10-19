@@ -4,6 +4,7 @@
 - Geist Mono: printable ASCII plus every other character the page shows, weights 400-600 only,
   written as fonts/geist-mono-<hash>.woff2 so it can be cached forever.
 - Geist Pixel: only the letters of the title, inlined in the page as a data URI (no request).
+- Caveat: only the letters of the hand-written note by the Narrator demo, inlined the same way.
 
 Needs fonttools and brotli (pip install fonttools brotli). Run after changing the page's text:
 python3 web/fonts/subset.py
@@ -22,6 +23,7 @@ WEB = Path(__file__).resolve().parent.parent
 FONTS = WEB / 'fonts'
 PAGE = WEB / 'index.html'
 TITLE = 'better-claude'
+NOTE = 'try this!'
 
 
 def build(src, unicodes, limit=None):
@@ -54,11 +56,21 @@ for old in FONTS.glob('geist-mono-*.woff2'):
 (FONTS / mono_name).write_bytes(mono)
 
 pixel = build(FONTS / 'src' / 'geist-pixel-latin.woff2', {ord(c) for c in TITLE})
-pixel_uri = 'data:font/woff2;base64,' + base64.b64encode(pixel).decode()
+hand = build(FONTS / 'src' / 'caveat-latin.woff2', {ord(c) for c in NOTE}, {'wght': 500})
+
+
+def inline(family, font, page):
+    """Points the @font-face of `family` at `font`, as a data URI."""
+    uri = 'data:font/woff2;base64,' + base64.b64encode(font).decode()
+    pattern = r'(font-family: "' + family + r'"; src: url\()data:font/woff2;base64,[A-Za-z0-9+/=]+'
+    return re.sub(pattern, lambda match: match.group(1) + uri, page)
+
 
 html = re.sub(r'fonts/geist-mono-[0-9a-f]{8}\.woff2', f'fonts/{mono_name}', html)
-html = re.sub(r'data:font/woff2;base64,[A-Za-z0-9+/=]+', pixel_uri, html)
+html = inline('Geist Pixel', pixel, html)
+html = inline('Caveat', hand, html)
 PAGE.write_text(html)
 
 print(f'fonts/{mono_name}: {len(mono)} bytes')
 print(f'Geist Pixel inlined: {len(pixel)} bytes')
+print(f'Caveat inlined: {len(hand)} bytes')
