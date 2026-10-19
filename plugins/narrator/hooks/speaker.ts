@@ -75,6 +75,19 @@ function run () {
 }
 `
 
+/** The voices AVSpeechSynthesizer can use, with their language codes. */
+export const MACOS_VOICES = String.raw`
+ObjC.import('AVFoundation')
+const all = $.AVSpeechSynthesisVoice.speechVoices
+const rows = []
+for (let i = 0; i < all.count; i++) {
+  const voice = all.objectAtIndex(i)
+  rows.push(ObjC.unwrap(voice.name) + '\t' + ObjC.unwrap(voice.language))
+}
+rows.sort()
+$.NSFileHandle.fileHandleWithStandardOutput.writeData($(rows.join('\n')).dataUsingEncoding($.NSUTF8StringEncoding))
+`
+
 /**
  * Windows (and WSL, through `powershell.exe`): the OneCore voices of Windows.Media.SpeechSynthesis,
  * the ones Narrator uses, played from memory; where WinRT cannot load, the desktop SAPI voices of
@@ -155,6 +168,24 @@ try {
   if ($script:isSpeaking) { exit 0 }
   try { Speak-Sapi } catch { if (-not $script:isSpeaking) { Say "error: $($_.Exception.Message)" } }
 }
+`
+
+/** Lists the Windows voices Narrator can select, including desktop SAPI voices where available. */
+export const WINDOWS_VOICES = String.raw`
+$ErrorActionPreference = 'Stop'
+$voices = @()
+# WinRT and SAPI are independent catalogs; list whichever APIs are available.
+try {
+  Add-Type -AssemblyName System.Runtime.WindowsRuntime
+  $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]
+  $voices += [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices | ForEach-Object { [pscustomobject]@{ Name = $_.DisplayName; Language = $_.Language } }
+} catch {}
+try {
+  Add-Type -AssemblyName System.Speech
+  $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+  $voices += $synth.GetInstalledVoices() | Where-Object { $_.Enabled } | ForEach-Object { [pscustomobject]@{ Name = $_.VoiceInfo.Name; Language = $_.VoiceInfo.Culture.Name } }
+} catch {}
+$voices | Sort-Object Language, Name -Unique | ForEach-Object { $_.Name + [char]9 + $_.Language }
 `
 
 /**

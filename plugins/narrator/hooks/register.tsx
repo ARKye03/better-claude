@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderNode } from 'claude-code'
 
-import { LINUX, MACOS, WINDOWS, powershell } from './speaker'
+import { LINUX, MACOS, MACOS_VOICES, WINDOWS, WINDOWS_VOICES, powershell } from './speaker'
 import { cut, guessLanguage, parseNarration, plain } from './text'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'other'
@@ -104,8 +104,8 @@ function linuxSpeechOf ($: EngineInterface) {
 }
 
 /** The programs that can say `text` here, best first. */
-async function speakersFor ($: EngineInterface, text: string, language: string): Promise<Command[]> {
-  const env = { NARRATOR_TEXT: text, NARRATOR_LANG: language, NARRATOR_VOICE: settings.voice }
+async function speakersFor ($: EngineInterface, text: string, language: string, voice = settings.voice): Promise<Command[]> {
+  const env = { NARRATOR_TEXT: text, NARRATOR_LANG: language, NARRATOR_VOICE: voice }
   const system = await platformOf($)
   if (system === 'macos') return [{ argv: ['osascript', '-l', 'JavaScript', '-e', MACOS], env }]
   if (system === 'windows') return [{ argv: powershell(WINDOWS), env }]
@@ -121,13 +121,78 @@ async function speakersFor ($: EngineInterface, text: string, language: string):
   // A language the synthesizer has no voice for is read by its English voice.
   const lang = language && (languages.size === 0 || languages.has(language) ? language : 'en')
   if (tool === 'spd-say') {
-    const options = [...(lang ? ['-l', lang] : []), ...(settings.voice ? ['-y', settings.voice] : [])]
+    const options = [...(lang ? ['-l', lang] : []), ...(voice ? ['-y', voice] : [])]
     speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', 'spd-say', '-w', ...options, '--', text], env: { ...env, NARRATOR_STOP: 'spd-say -S' } })
   } else if (tool) {
-    const voice = settings.voice || lang
-    speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', tool, ...(voice ? ['-v', voice] : []), '--', text], env })
+    const selectedVoice = voice || lang
+    speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', tool, ...(selectedVoice ? ['-v', selectedVoice] : []), '--', text], env })
   }
   return speakers
+}
+
+async function commandOutput ($: EngineInterface, argv: string[]) {
+  const result = await $.process.run(argv, { timeoutMs: 10_000 })
+  if (result.exitCode !== 0) throw new Error(result.stderr.trim() || `exit code ${result.exitCode}`)
+  return result.stdout.trim()
+}
+
+function formatNamedVoices (output: string) {
+  return output.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+    const [name, language] = line.split('\t')
+    return language ? `${name} (${language})` : name
+  })
+}
+
+/** Lists voices exposed by this system's speech synthesizers. */
+async function listVoices ($: EngineInterface) {
+  const system = await platformOf($)
+  if (system === 'macos') {
+    const output = await commandOutput($, ['osascript', '-l', 'JavaScript', '-e', MACOS_VOICES])
+    const voices = formatNamedVoices(output)
+    return voices.length ? `Installed voices:\n${voices.join('\n')}` : 'Narrator: no installed voices found.'
+  }
+  if (system === 'windows') {
+    const output = await commandOutput($, powershell(WINDOWS_VOICES))
+    const voices = formatNamedVoices(output)
+    return voices.length ? `Installed voices:\n${voices.join('\n')}` : 'Narrator: no installed voices found.'
+  }
+  if (system !== 'linux') return 'Narrator: voice discovery is not supported on this system.'
+
+  const sections: string[] = []
+  const failures: string[] = []
+  if (await wslOf($)) {
+    try {
+      const output = await commandOutput($, powershell(WINDOWS_VOICES, 'powershell.exe'))
+      const voices = formatNamedVoices(output)
+      if (voices.length) sections.push(`Windows voices:\n${voices.join('\n')}`)
+    } catch (error) {
+      failures.push(`Windows: ${message(error)}`)
+    }
+  }
+  const found = await commandOutput($, ['sh', '-c', 'for tool in spd-say espeak-ng espeak; do command -v "$tool" || true; done'])
+  const paths = found.split('\n').map(path => path.trim())
+  const has = (name: string) => paths.some(path => path.endsWith(`/${name}`))
+  if (has('spd-say')) {
+    try {
+      const output = await commandOutput($, ['spd-say', '-L'])
+      if (output) sections.push(`Speech Dispatcher languages (voice names depend on its configured output module):\n${output}`)
+    } catch (error) {
+      failures.push(`Speech Dispatcher: ${message(error)}`)
+    }
+  }
+  const espeak = has('espeak-ng') ? 'espeak-ng' : has('espeak') ? 'espeak' : undefined
+  if (espeak) {
+    try {
+      const output = await commandOutput($, [espeak, '--voices'])
+      if (output) sections.push(`${espeak} voices:\n${output}`)
+    } catch (error) {
+      failures.push(`${espeak}: ${message(error)}`)
+    }
+  }
+  if (!sections.length && failures.length) return `Narrator: could not list voices. ${failures.join('; ')}`
+  if (!sections.length) return 'Narrator: no installed voices found.'
+  if (failures.length) sections.push(`Some voices could not be listed: ${failures.join('; ')}`)
+  return sections.join('\n\n')
 }
 
 /** Runs one speaker till it ends or the narration is silenced; whether it spoke. */
@@ -149,27 +214,45 @@ async function play ($: EngineInterface, narration: Narration, command: Command)
   if (!narration.isActive && pid && command.argv[0] === 'powershell.exe') {
     await $.process.run(['taskkill.exe', '/PID', pid, '/T', '/F']).catch(() => undefined)
   }
-  if (!narration.isActive) return true
+  if (!narration.isActive) return false
   $.ui.log(failure ? `narrator: ${command.argv[0]}: ${failure}` : `narrator: spoke with ${voice}`, { to: 'debug' })
   return failure === ''
 }
 
 /** Says `text` with the best speaker that works here, the engine's own synthesizer last. */
-async function speak ($: EngineInterface, narration: Narration, text: string, language: string) {
-  for (const command of await speakersFor($, text, language)) {
-    if (await play($, narration, command)) return
-    if (!narration.isActive) return
+async function speak ($: EngineInterface, narration: Narration, text: string, language: string, voice = settings.voice) {
+  for (const command of await speakersFor($, text, language, voice)) {
+    if (await play($, narration, command)) return true
+    if (!narration.isActive) return false
   }
   try {
-    await $.audio.speak(text, settings.voice ? { voice: settings.voice } : undefined)
+    await $.audio.speak(text, voice ? { voice } : undefined)
+    return true
   } catch (error) {
     $.ui.log(`narrator: ${message(error)}`, { to: 'debug' })
-    if (hasWarned) return
+    if (hasWarned) return false
     hasWarned = true
     const system = await platformOf($)
     $.ui.toast(system === 'linux'
       ? 'Narrator: no voice to speak with. Install speech-dispatcher (spd-say) or espeak-ng.'
       : `Narrator: no voice to speak with (${message(error)}).`)
+    return false
+  }
+}
+
+async function testVoice ($: EngineInterface, voice: string) {
+  silence()
+  const narration: Narration = { isActive: true, abort: new AbortController() }
+  current = narration
+  try {
+    const spoken = await speak($, narration, 'Hello! This is a voice preview for Narrator.', 'en', voice)
+    return spoken ? 'Narrator: voice preview finished.' : 'Narrator: could not play the voice preview.'
+  } catch (error) {
+    $.ui.log(`narrator: voice preview: ${message(error)}`, { to: 'debug' })
+    return `Narrator: could not play the voice preview. ${message(error)}`
+  } finally {
+    narration.isActive = false
+    if (current === narration) current = undefined
   }
 }
 
@@ -229,8 +312,8 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'narrator',
-      description: 'Claude tells you out loud what it did after each turn · no argument: switch on or off',
-      argumentHint: '[on | off | stop]',
+      description: 'Claude tells you out loud what it did after each turn · switch, list voices or test a voice',
+      argumentHint: '[on | off | stop | voices | test [voice]]',
       immediate: true
     })
     const isEnabled = (await $.store.get('enabled')) === true
@@ -245,11 +328,23 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'narrator' }, async ($, e) => {
     const arg = e.args.trim().toLowerCase()
+    if (arg === 'voices') {
+      try {
+        return { text: await listVoices($) }
+      } catch (error) {
+        return { text: `Narrator: could not list voices. ${message(error)}` }
+      }
+    }
+    const test = /^test(?:\s+([\s\S]+))?$/i.exec(e.args.trim())
+    if (test) {
+      const voice = (test[1] ?? settings.voice).trim().replace(/^(['"])(.*)\1$/, '$2')
+      return { text: await testVoice($, voice) }
+    }
     if (arg === 'stop') {
       silence()
       return { text: 'Narrator: quiet.' }
     }
-    if (arg !== '' && arg !== 'on' && arg !== 'off') return { text: 'Usage: /narrator [on | off | stop]' }
+    if (arg !== '' && arg !== 'on' && arg !== 'off') return { text: 'Usage: /narrator [on | off | stop | voices | test [voice]]' }
     const isEnabled = await setEnabled($, arg === '' ? undefined : arg === 'on')
     return { text: isEnabled ? 'Narrator on: Claude will tell you out loud what it did after each turn.' : 'Narrator off.' }
   })

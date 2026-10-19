@@ -24,7 +24,11 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 /narrator         switch on or off
 /narrator on|off
 /narrator stop    quiet now, stay on
+/narrator voices  list installed voices and languages
+/narrator test [voice]
 ```
+
+`/narrator test` speaks a short English sample with the configured voice (or the system's automatic choice). Pass a voice name to try it without changing `/config`, for example `/narrator test "Microsoft Helena"`. `/narrator voices` lists the installed voices the system exposes; on Linux, speech-dispatcher reports supported languages, while eSpeak lists its voice names.
 
 ### Better voices
 

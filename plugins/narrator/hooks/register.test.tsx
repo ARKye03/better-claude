@@ -14,6 +14,7 @@ type World = {
   reply?: string | null
   tools?: string
   voices?: string
+  processErrors?: string[]
   speaker?: 'speaks' | 'talks on' | 'fails'
   hasEngineVoice?: boolean
   store?: Record<string, unknown>
@@ -23,7 +24,7 @@ type World = {
  * Everything beneath the mod: the session, the store, the system and its synthesizers, the model
  * that writes the narration, and the engine's own `$.audio.speak`.
  */
-function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', speaker = 'speaks', hasEngineVoice = true, store = {} }: World = {}) {
+function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', processErrors = [], speaker = 'speaks', hasEngineVoice = true, store = {} }: World = {}) {
   const clock = mock.clock(on, { now: 0 })
   const kept: Record<string, unknown> = { ...store }
   on('store.get', ($, e) => ({ value: kept[e.key] }))
@@ -37,6 +38,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   const prompts: string[] = []
   const efforts: unknown[] = []
   const toasts: string[] = []
+  const commandHints: string[] = []
   let heard: () => void = () => undefined
   // Resolves when the next thing is said, by a program or by the engine.
   const nextSpeech = () => new Promise<void>(resolve => { heard = resolve })
@@ -46,7 +48,10 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   on('turn.start', ($, e) => ({ turnId: e.turnId }))
   on('turn.complete', ($, e) => ({ text: e.answer }))
   on('prompt.submit', ($, e) => ({ text: e.text }))
-  on('command.register', ($, e) => ({ value: { command: e.name } }))
+  on('command.register', ($, e) => {
+    commandHints.push(e.argumentHint ?? '')
+    return { value: { command: e.name } }
+  })
   on('command.run', () => ({ text: 'no plugin answered' }))
   // What the engine draws where the mod draws nothing
   on('ui.render', ($, e) => {
@@ -65,8 +70,13 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
     return { value: reply === null ? { isAnswered: false as const, reason: 'empty-reply' as const, usage: USAGE } : { isAnswered: true as const, text: reply, usage: USAGE } }
   })
   on('process.run', ($, e) => {
-    const stdout = e.argv[0] === 'uname' ? `${system}\n` : e.argv[0] === 'sh' ? tools : e.argv.includes('-L') || e.argv.includes('--voices') ? voices : ''
-    return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    let stdout = ''
+    if (e.argv[0] === 'uname') stdout = `${system}\n`
+    else if (e.argv[0] === 'sh') stdout = tools
+    else if (['osascript', 'powershell', 'powershell.exe'].includes(e.argv[0]!)) stdout = voices
+    else if (e.argv.includes('-L') || e.argv.includes('--voices')) stdout = voices
+    const error = processErrors.find(program => e.argv[0] === program)
+    return { value: { exitCode: error ? 1 : 0, stdout, stderr: error ? 'unavailable' : '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   // A speaker: it says which voice it speaks with, then `.` every tenth of a second while it talks.
   on('process.spawn', async function * ($, e) {
@@ -98,7 +108,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   const settled = async () => {
     for (let i = 0; i < 20; i++) await clock.advance(0)
   }
-  return { clock, store: kept, spoken, said, prompts, efforts, toasts, nextSpeech, settled }
+  return { clock, store: kept, spoken, said, prompts, efforts, toasts, commandHints, nextSpeech, settled }
 }
 
 const footer = ($: Engine, modes: string[] = []) =>
@@ -135,6 +145,108 @@ test('/narrator switches it too, and the switch follows', async ($, on) => {
   expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator off')
   expect((await narrator($, 'on')).text).toMatch(/^Narrator on/)
   expect(w.store.enabled).toBe(true)
+})
+
+test('/narrator voices lists macOS voices and their languages', async ($, on) => {
+  world(on, { voices: 'Mónica\tes-ES\nSamantha\ten-US\n' })
+  await startSession($)
+  const result = await narrator($, 'voices')
+  expect(result.text).toBe('Installed voices:\nMónica (es-ES)\nSamantha (en-US)')
+})
+
+test('/narrator voices lists Windows voices', async ($, on) => {
+  world(on, { system: 'Windows_NT', env: { OS: 'Windows_NT' }, voices: 'Microsoft David\ten-US\nMicrosoft Helena\tes-ES\n' })
+  await startSession($)
+  const result = await narrator($, 'voices')
+  expect(result.text).toBe('Installed voices:\nMicrosoft David (en-US)\nMicrosoft Helena (es-ES)')
+})
+
+test('/narrator voices lists Windows and Linux voices on WSL', async ($, on) => {
+  world(on, {
+    system: 'Linux',
+    env: { WSL_DISTRO_NAME: 'Ubuntu' },
+    tools: '/usr/bin/espeak-ng\n',
+    voices: 'Microsoft Helena\tes-ES\nPty Language Age/Gender VoiceName File\n 5 en-us --/M English_(America) gmw/en-US\n'
+  })
+  await startSession($)
+  const result = await narrator($, 'voices')
+  expect(result.text).toContain('Windows voices:\nMicrosoft Helena (es-ES)')
+  expect(result.text).toContain('espeak-ng voices:')
+})
+
+test('/narrator voices reports Linux speech-dispatcher languages and espeak voices', async ($, on) => {
+  world(on, {
+    system: 'Linux',
+    tools: '/usr/bin/spd-say\n/usr/bin/espeak-ng\n',
+    voices: 'NAME LANGUAGE VARIANT\nSpanish es none\nPty Language Age/Gender VoiceName File\n 5 en-us --/M English_(America) gmw/en-US\n'
+  })
+  await startSession($)
+  const result = await narrator($, 'voices')
+  expect(result.text).toContain('Speech Dispatcher languages (voice names depend on its configured output module):')
+  expect(result.text).toContain('espeak-ng voices:')
+  expect(result.text).toContain('English_(America)')
+})
+
+test('/narrator voices reports listing errors instead of hiding them', async ($, on) => {
+  world(on, { processErrors: ['osascript'] })
+  await startSession($)
+  expect((await narrator($, 'voices')).text).toBe('Narrator: could not list voices. unavailable')
+})
+
+test('/narrator voices reports when no local voices are available', async ($, on) => {
+  world(on, { system: 'Linux' })
+  await startSession($)
+  expect((await narrator($, 'voices')).text).toBe('Narrator: no installed voices found.')
+})
+
+test('/narrator voices includes its commands in the argument hint', async ($, on) => {
+  const w = world(on)
+  await startSession($)
+  expect(w.commandHints).toContain('[on | off | stop | voices | test [voice]]')
+})
+
+test('/narrator test previews a named voice without changing narrator settings', { options: { voice: 'Luisa' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: false } })
+  await startSession($)
+  const result = await narrator($, 'test "Mónica"')
+  expect(result.text).toBe('Narrator: voice preview finished.')
+  expect(w.spoken[0]!.env).toEqual({
+    NARRATOR_TEXT: 'Hello! This is a voice preview for Narrator.',
+    NARRATOR_LANG: 'en',
+    NARRATOR_VOICE: 'Mónica'
+  })
+  await narrator($, 'test')
+  expect(w.spoken[1]!.env.NARRATOR_VOICE).toBe('Luisa')
+  expect(w.store.enabled).toBe(false)
+})
+
+test('/narrator test previews a named Windows voice', async ($, on) => {
+  const w = world(on, { env: { OS: 'Windows_NT' } })
+  await startSession($)
+  const result = await narrator($, 'test Microsoft Helena')
+  expect(result.text).toBe('Narrator: voice preview finished.')
+  expect(w.spoken[0]!.argv[0]).toBe('powershell')
+  expect(w.spoken[0]!.env.NARRATOR_VOICE).toBe('Microsoft Helena')
+})
+
+test('/narrator test without a name previews the configured voice', { options: { voice: 'Luisa' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: false } })
+  await startSession($)
+  const result = await narrator($, 'test')
+  expect(result.text).toBe('Narrator: voice preview finished.')
+  expect(w.spoken[0]!.env.NARRATOR_VOICE).toBe('Luisa')
+})
+
+test('/narrator test reports when no synthesizer can play the preview', async ($, on) => {
+  world(on, { speaker: 'fails', hasEngineVoice: false })
+  await startSession($)
+  expect((await narrator($, 'test')).text).toBe('Narrator: could not play the voice preview.')
+})
+
+test('/narrator help includes voice discovery and preview commands', async ($, on) => {
+  world(on)
+  await startSession($)
+  expect((await narrator($, 'unknown')).text).toBe('Usage: /narrator [on | off | stop | voices | test [voice]]')
 })
 
 test('a session starts with the narrator as the last one left it', async ($, on) => {
