@@ -22,7 +22,7 @@
     "voice": {
       "type": "string",
       "title": "Voice",
-      "description": "A voice's name (Mónica, Microsoft Helena) to always speak with. Empty: the best voice installed for the language Claude speaks, or the English one where that language has none.",
+      "description": "A voice's name (Mónica, Microsoft Helena, or Eddy (es-MX) for one language's) to always speak with; /narrator voices lists them. Empty: the best voice installed for the language Claude speaks, or the English one where that language has none.",
       "default": ""
     },
     "model": {

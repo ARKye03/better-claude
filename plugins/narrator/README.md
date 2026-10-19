@@ -24,11 +24,13 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 /narrator         switch on or off
 /narrator on|off
 /narrator stop    quiet now, stay on
-/narrator voices  list installed voices and languages
-/narrator test [voice]
+/narrator voices  list the installed voices, by language
+/narrator test [voice]  say a short sample with a voice
 ```
 
-`/narrator test` speaks a short English sample with the configured voice (or the system's automatic choice). Pass a voice name to try it without changing `/config`, for example `/narrator test "Microsoft Helena"`. `/narrator voices` lists the installed voices the system exposes; on Linux, speech-dispatcher reports supported languages, while eSpeak lists its voice names.
+`/narrator voices` lists the voices your system has, one line per language (`es-ES: Eddy, Mónica`); on macOS it leaves out the novelty ones (Bahh, Bells...). On Linux it shows speech-dispatcher's table, whose NAME column holds the voices of its output module, and eSpeak's.
+
+`/narrator test` says a short English sample with the voice in `/config` (or, if it is empty, the one the system picks), and tells you which voice spoke. Pass a voice to try it without changing `/config`: `/narrator test Microsoft Helena`. A name several languages share (Eddy) can take its language, as `/narrator voices` shows it: `/narrator test Eddy (es-MX)`. If the system has no voice by that name, the preview says so and names the one it used instead.
 
 ### Better voices
 
@@ -47,7 +49,7 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 
 In `/config`:
 
-- **Voice**: a voice's name (`Mónica`, `Microsoft Helena`) to always speak with. Empty: the best one for the language.
+- **Voice**: a voice's name (`Mónica`, `Microsoft Helena`, or `Eddy (es-MX)` for one language's) to always speak with. Empty: the best one for the language. `/narrator voices` lists them and `/narrator test` tries one.
 - **Model that writes the narration**: `haiku` by default.
 
 ## How it works

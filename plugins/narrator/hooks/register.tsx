@@ -6,17 +6,20 @@ import { cut, guessLanguage, parseNarration, plain } from './text'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'other'
 /** A program that speaks, and what it is told through its environment. */
-type Command = { argv: string[]; env: Record<string, string> }
+type Command = { argv: string[]; env: Record<string, string>; isFallback?: boolean }
+/** How a speaker spoke: the voice it used, and whether that is not the one asked for (none matched). */
+type Spoke = { voice: string; isFallback: boolean }
 /** One narration: the model call that writes it, then the program that speaks it, until silenced. */
 type Narration = { isActive: boolean; abort: AbortController }
-/** The synthesizer found on Linux and the languages it has voices for (empty: it did not say). */
-type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<string> }
+/** The synthesizer found on Linux, the languages it has voices for and their names, lowercased (empty: it did not say). */
+type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<string>; names: Set<string> }
 
 // The switch at the right of the prompt footer, in the style of the mode labels (⏵⏵ auto mode on),
 // each in a quiet color. U+FE0E keeps the pause sign a text glyph, never an emoji.
 const SWITCH_ON = { label: '\u23F5 narrator on', color: 'success' } as const
 const SWITCH_OFF = { label: '\u23F8\uFE0E narrator off', color: 'inactive' } as const
 const MAX_ACTIONS = 40
+const PREVIEW = 'Hello! This is a voice preview for Narrator.'
 // The tool inputs that say best what a call did, in order of preference.
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
@@ -90,15 +93,27 @@ function languagesIn (table: string) {
   return languages
 }
 
+/** The voice names in `spd-say -L`'s table, lowercased: what comes before each row's language. */
+function namesIn (table: string) {
+  const names = new Set<string>()
+  for (const line of table.split('\n').slice(1)) {
+    const words = line.trim().split(/\s+/)
+    const at = words.findIndex((word, i) => i > 0 && LANGUAGE_CODE.test(word))
+    if (at > 0) names.add(words.slice(0, at).join(' ').toLowerCase())
+  }
+  return names
+}
+
 /** Which synthesizer Linux has, speech-dispatcher first, and its languages, asked once. */
 function linuxSpeechOf ($: EngineInterface) {
   linuxSpeech ??= (async (): Promise<LinuxSpeech> => {
     const found = (await $.process.run(['sh', '-c', 'command -v spd-say espeak-ng espeak']).catch(() => undefined))?.stdout ?? ''
     const paths = found.split('\n').map(path => path.trim())
     const tool = (['spd-say', 'espeak-ng', 'espeak'] as const).find(name => paths.some(path => path.endsWith(`/${name}`)))
-    if (!tool) return { languages: new Set() }
+    if (!tool) return { languages: new Set(), names: new Set() }
     const listed = await $.process.run(tool === 'spd-say' ? ['spd-say', '-L'] : [tool, '--voices'], { timeoutMs: 5000 }).catch(() => undefined)
-    return { tool, languages: languagesIn(listed?.stdout ?? '') }
+    const table = listed?.stdout ?? ''
+    return { tool, languages: languagesIn(table), names: tool === 'spd-say' ? namesIn(table) : new Set() }
   })()
   return linuxSpeech
 }
@@ -117,12 +132,14 @@ async function speakersFor ($: EngineInterface, text: string, language: string, 
     const crossing = [inherited, 'NARRATOR_TEXT/u', 'NARRATOR_LANG/u', 'NARRATOR_VOICE/u'].filter(Boolean).join(':')
     speakers.push({ argv: powershell(WINDOWS, 'powershell.exe'), env: { ...env, WSLENV: crossing } })
   }
-  const { tool, languages } = await linuxSpeechOf($)
+  const { tool, languages, names } = await linuxSpeechOf($)
   // A language the synthesizer has no voice for is read by its English voice.
   const lang = language && (languages.size === 0 || languages.has(language) ? language : 'en')
   if (tool === 'spd-say') {
     const options = [...(lang ? ['-l', lang] : []), ...(voice ? ['-y', voice] : [])]
-    speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', 'spd-say', '-w', ...options, '--', text], env: { ...env, NARRATOR_STOP: 'spd-say -S' } })
+    // speech-dispatcher speaks a voice it does not have with its default one, and says nothing.
+    const isFallback = voice !== '' && names.size > 0 && !names.has(voice.toLowerCase())
+    speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', 'spd-say', '-w', ...options, '--', text], env: { ...env, NARRATOR_STOP: 'spd-say -S' }, isFallback })
   } else if (tool) {
     const selectedVoice = voice || lang
     speakers.push({ argv: ['sh', '-c', LINUX, 'narrator', tool, ...(selectedVoice ? ['-v', selectedVoice] : []), '--', text], env })
@@ -136,11 +153,14 @@ async function commandOutput ($: EngineInterface, argv: string[]) {
   return result.stdout.trim()
 }
 
+/** `name<TAB>language` rows as one line per language: `es-ES: Eddy, Mónica`. */
 function formatNamedVoices (output: string) {
-  return output.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
-    const [name, language] = line.split('\t')
-    return language ? `${name} (${language})` : name
-  })
+  const byLanguage = new Map<string, string[]>()
+  for (const line of output.split(/\r?\n/).map(row => row.trim()).filter(Boolean)) {
+    const [name = '', language = '?'] = line.split('\t')
+    byLanguage.set(language, [...(byLanguage.get(language) ?? []), name])
+  }
+  return [...byLanguage].sort(([a], [b]) => a.localeCompare(b)).map(([language, names]) => `${language}: ${names.join(', ')}`)
 }
 
 /** Lists voices exposed by this system's speech synthesizers. */
@@ -175,7 +195,7 @@ async function listVoices ($: EngineInterface) {
   if (has('spd-say')) {
     try {
       const output = await commandOutput($, ['spd-say', '-L'])
-      if (output) sections.push(`Speech Dispatcher languages (voice names depend on its configured output module):\n${output}`)
+      if (output) sections.push(`Speech Dispatcher voices (its output module's; pass a NAME to /narrator test):\n${output}`)
     } catch (error) {
       failures.push(`Speech Dispatcher: ${message(error)}`)
     }
@@ -195,8 +215,8 @@ async function listVoices ($: EngineInterface) {
   return sections.join('\n\n')
 }
 
-/** Runs one speaker till it ends or the narration is silenced; whether it spoke. */
-async function play ($: EngineInterface, narration: Narration, command: Command) {
+/** Runs one speaker till it ends or the narration is silenced; how it spoke, if it did. */
+async function play ($: EngineInterface, narration: Narration, command: Command): Promise<Spoke | undefined> {
   let said = ''
   let failure = ''
   try {
@@ -214,39 +234,43 @@ async function play ($: EngineInterface, narration: Narration, command: Command)
   if (!narration.isActive && pid && command.argv[0] === 'powershell.exe') {
     await $.process.run(['taskkill.exe', '/PID', pid, '/T', '/F']).catch(() => undefined)
   }
-  if (!narration.isActive) return false
+  if (!narration.isActive) return undefined
   $.ui.log(failure ? `narrator: ${command.argv[0]}: ${failure}` : `narrator: spoke with ${voice}`, { to: 'debug' })
-  return failure === ''
+  return failure === '' ? { voice: voice!, isFallback: command.isFallback === true || /^no voice /m.test(said) } : undefined
 }
 
-/** Says `text` with the best speaker that works here, the engine's own synthesizer last. */
-async function speak ($: EngineInterface, narration: Narration, text: string, language: string, voice = settings.voice) {
+/** Says `text` with the best speaker that works here, the engine's own synthesizer last; how, if it did. */
+async function speak ($: EngineInterface, narration: Narration, text: string, language: string, voice = settings.voice): Promise<Spoke | undefined> {
   for (const command of await speakersFor($, text, language, voice)) {
-    if (await play($, narration, command)) return true
-    if (!narration.isActive) return false
+    const spoke = await play($, narration, command)
+    if (spoke || !narration.isActive) return spoke
   }
   try {
     await $.audio.speak(text, voice ? { voice } : undefined)
-    return true
+    return { voice: voice || "Claude Code's own voice", isFallback: false }
   } catch (error) {
     $.ui.log(`narrator: ${message(error)}`, { to: 'debug' })
-    if (hasWarned) return false
+    if (hasWarned) return undefined
     hasWarned = true
     const system = await platformOf($)
     $.ui.toast(system === 'linux'
       ? 'Narrator: no voice to speak with. Install speech-dispatcher (spd-say) or espeak-ng.'
       : `Narrator: no voice to speak with (${message(error)}).`)
-    return false
+    return undefined
   }
 }
 
+/** Says a short sample with `voice` (empty: the one picked for English), and what came of it. */
 async function testVoice ($: EngineInterface, voice: string) {
   silence()
   const narration: Narration = { isActive: true, abort: new AbortController() }
   current = narration
   try {
-    const spoken = await speak($, narration, 'Hello! This is a voice preview for Narrator.', 'en', voice)
-    return spoken ? 'Narrator: voice preview finished.' : 'Narrator: could not play the voice preview.'
+    const spoke = await speak($, narration, PREVIEW, 'en', voice)
+    if (!narration.isActive) return 'Narrator: preview stopped.'
+    if (!spoke) return 'Narrator: could not play the voice preview.'
+    if (voice && spoke.isFallback) return `Narrator: there is no voice "${voice}", so the preview used ${spoke.voice}. /narrator voices lists the installed ones.`
+    return `Narrator: previewed ${voice || spoke.voice}.`
   } catch (error) {
     $.ui.log(`narrator: voice preview: ${message(error)}`, { to: 'debug' })
     return `Narrator: could not play the voice preview. ${message(error)}`
@@ -312,7 +336,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'narrator',
-      description: 'Claude tells you out loud what it did after each turn · switch, list voices or test a voice',
+      description: 'Claude tells you out loud what it did after each turn · no argument: switch on or off',
       argumentHint: '[on | off | stop | voices | test [voice]]',
       immediate: true
     })
@@ -337,8 +361,8 @@ export const register: Register = (on, options) => {
     }
     const test = /^test(?:\s+([\s\S]+))?$/i.exec(e.args.trim())
     if (test) {
-      const voice = (test[1] ?? settings.voice).trim().replace(/^(['"])(.*)\1$/, '$2')
-      return { text: await testVoice($, voice) }
+      const named = (test[1] ?? '').trim().replace(/^(['"])(.*)\1$/, '$2').trim()
+      return { text: await testVoice($, named || settings.voice) }
     }
     if (arg === 'stop') {
       silence()

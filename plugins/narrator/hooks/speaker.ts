@@ -1,9 +1,10 @@
 // The programs that speak a narration: one a system, each the best free voice that system has. Each
 // reads NARRATOR_TEXT, what to say; NARRATOR_LANG, its language as an ISO 639-1 code (empty: the
 // program tells, or uses its default); and NARRATOR_VOICE, a voice's name (empty: the best one for
-// the language, English's when the language has none). Each writes `voice <name>` once it speaks,
-// or a line starting `error`, then a `.` every tenth of a second while it speaks, so the one reading
-// it is woken to end it.
+// the language, English's when the language has none; `Name (es-ES)` picks a name's voice in one
+// language). Each writes `no voice <name>` when it has no voice by that name, `voice <name>` once
+// it speaks, or a line starting `error`, then a `.` every tenth of a second while it speaks, so the
+// one reading it is woken to end it.
 
 /**
  * macOS: JavaScript for Automation, run by `osascript`, with AVSpeechSynthesizer, which reaches the
@@ -54,7 +55,11 @@ function run () {
       (/\.(speech\.synthesis|eloquence)\./.test(v.id) ? 10000 : 0)
     return voices.filter(v => v.lang.split('-')[0] === language).sort((a, b) => score(b) - score(a))[0]
   }
-  const named = wanted && voices.sort((a, b) => b.quality - a.quality).find(v => v.id.toLowerCase() === wanted || v.name.toLowerCase() === wanted)
+  // A name several languages share (Eddy) reads in the narration's language, else its best voice.
+  const isNamed = v => [v.id, v.name, v.name + ' (' + v.lang + ')'].some(name => name.toLowerCase() === wanted)
+  const inLanguage = v => (v.lang.split('-')[0] === language ? 1 : 0)
+  const named = wanted && voices.filter(isNamed).sort((a, b) => inLanguage(b) - inLanguage(a) || b.quality - a.quality)[0]
+  if (wanted && !named) say('no voice ' + read('NARRATOR_VOICE'))
   const picked = named || best(language) || best('en')
 
   const synth = $.AVSpeechSynthesizer.alloc.init
@@ -75,13 +80,14 @@ function run () {
 }
 `
 
-/** The voices AVSpeechSynthesizer can use, with their language codes. */
+/** The voices AVSpeechSynthesizer can use, with their language codes, but the novelty ones (Bahh, Bells...). */
 export const MACOS_VOICES = String.raw`
 ObjC.import('AVFoundation')
 const all = $.AVSpeechSynthesisVoice.speechVoices
 const rows = []
 for (let i = 0; i < all.count; i++) {
   const voice = all.objectAtIndex(i)
+  if (ObjC.unwrap(voice.identifier).includes('.speech.synthesis.')) continue
   rows.push(ObjC.unwrap(voice.name) + '\t' + ObjC.unwrap(voice.language))
 }
 rows.sort()
@@ -103,12 +109,13 @@ $region = (Get-Culture).Name
 function Say($line) { [Console]::Out.WriteLine($line); [Console]::Out.Flush() }
 Say "pid $PID"
 
-# Among voices given as Name, Language and Item: the one named; else the language's, the person's
-# region first; else English's, en-US first.
+# Among voices given as Name, Language and Item: the one named (or listed as "Name (es-ES)"); else
+# the language's, the person's region first; else English's, en-US first.
 function Pick($voices) {
   if ($wanted) {
-    $named = @($voices | Where-Object { $_.Name -eq $wanted -or $_.Name -like "*$wanted*" })
+    $named = @($voices | Where-Object { "$($_.Name) ($($_.Language))" -eq $wanted -or $_.Name -eq $wanted -or $_.Name -like "*$wanted*" })
     if ($named.Count -gt 0) { return $named[0] }
+    Say "no voice $wanted"
   }
   foreach ($lang in @($language, 'en')) {
     if (-not $lang) { continue }
