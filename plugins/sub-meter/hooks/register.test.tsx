@@ -46,7 +46,7 @@ test('shows the 5-hour window first, as a bar with the time until it resets', as
   expect(await ui.find({ type: 'Text', text: '━━━━━━' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '────' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: ' 58%' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: ' · 2h 10m' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' ↻ 2h 10m' })).toBeDefined()
 })
 
 test('takes turns with the weekly window', async ($, on) => {
@@ -56,7 +56,7 @@ test('takes turns with the weekly window', async ($, on) => {
   const ui = await footer($)
   expect(await ui.find({ type: 'Text', text: 'week ' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: ' 24%' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: ' · 3d 4h' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' ↻ 3d 4h' })).toBeDefined()
 })
 
 test('takes turns as often as rotateSeconds says', { options: { rotateSeconds: 30 } }, async ($, on) => {
@@ -72,7 +72,7 @@ test('alone, with no mode labels, the meter ends the footer', async ($, on) => {
   world(on)
   await startSession($)
   const ui = await footer($)
-  expect((await ui.findAll({ type: 'Text' })).at(-1)?.text).toBe(' · 2h 10m')
+  expect((await ui.findAll({ type: 'Text' })).at(-1)?.text).toBe(' ↻ 2h 10m')
 })
 
 test("keeps the engine's mode labels after the meter", async ($, on) => {
@@ -81,7 +81,7 @@ test("keeps the engine's mode labels after the meter", async ($, on) => {
   const ui = await footer($, ['focus'])
   const row = await ui.drawn()
   expect(row.children?.at(-1)).toMatchObject({ props: { key: 'engine' } })
-  expect((await ui.findAll({ type: 'Text' })).map(text => text.text)).toEqual(['5h ', '━━━━━━', '────', ' 58%', ' · 2h 10m', ' · '])
+  expect((await ui.findAll({ type: 'Text' })).map(text => text.text)).toEqual(['5h ', '━━━━━━', '────', ' 58%', ' ↻ 2h 10m', ' · '])
 })
 
 test("keeps another plugin's drawing there after the meter, so it stays last", async ($, on) => {
@@ -93,7 +93,7 @@ test("keeps another plugin's drawing there after the meter, so it stays last", a
   world(on)
   await startSession($)
   const ui = await footer($)
-  expect((await ui.findAll({ type: 'Text' })).map(text => text.text).slice(-3)).toEqual([' · 2h 10m', ' · ', '⏵ narrator on'])
+  expect((await ui.findAll({ type: 'Text' })).map(text => text.text).slice(-3)).toEqual([' ↻ 2h 10m', ' · ', '⏵ narrator on'])
 })
 
 test('off a subscription the engine draws its own footer', async ($, on) => {

@@ -3,10 +3,10 @@
 A Claude Code mod: your subscription usage, always at the bottom right, on the same line as the permission mode.
 
 ```text
-⏵⏵ auto mode on                                   5h ━━━━━━──── 58% · 2h 10m
+⏵⏵ auto mode on                                   5h ━━━━━━──── 58% ↻ 2h 10m
 ```
 
-Every 8 seconds it switches between the **5-hour** window and the **weekly** one (change it in `/config`, `rotateSeconds`). The bar turns yellow from 75% and red from 90%. After it the time until that window resets.
+Every 8 seconds it switches between the **5-hour** window and the **weekly** one (change it in `/config`, `rotateSeconds`). The bar turns yellow from 75% and red from 90%. After it, behind ↻, the time until that window resets.
 
 There is no monthly window: Claude Code only reports the 5-hour and the weekly ones. Off a subscription (API key billing) there is nothing to show, so the footer stays as it is.
 

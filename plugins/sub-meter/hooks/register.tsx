@@ -88,7 +88,7 @@ export const register: Register = (on, options) => {
         <Text color={colorFor(percent)}>{'━'.repeat(filled)}</Text>
         <Text dimColor>{'─'.repeat(CELLS - filled)}</Text>
         <Text> {Math.round(percent)}%</Text>
-        {resetsIn !== undefined && !hasReset ? <Text dimColor> · {until(resetsIn)}</Text> : null}
+        {resetsIn !== undefined && !hasReset ? <Text dimColor> ↻ {until(resetsIn)}</Text> : null}
         {hasBeneath ? <Text dimColor> · </Text> : null}
         {beneath}
       </Box>
