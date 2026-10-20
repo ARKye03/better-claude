@@ -154,8 +154,8 @@ test('/narrator switches it too, and the switch follows', async ($, on) => {
   expect(w.store.enabled).toBe(true)
 })
 
-test('/narrator voices lists macOS voices, one line per language', async ($, on) => {
-  world(on, { voices: 'Eddy\ten-US\nEddy\tes-ES\nMónica\tes-ES\nSamantha\ten-US\n' })
+test('/narrator voices lists macOS voices, one line per language, each once', async ($, on) => {
+  world(on, { voices: 'Eddy\ten-US\nEddy\tes-ES\nMónica\tes-ES\nMónica\tes-ES\nSamantha\ten-US\n' })
   await startSession($)
   const result = await narrator($, 'voices')
   expect(result.text).toBe('Installed voices:\nen-US: Eddy, Samantha\nes-ES: Eddy, Mónica')

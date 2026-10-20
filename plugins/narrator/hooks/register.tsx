@@ -170,14 +170,14 @@ async function commandOutput ($: EngineInterface, argv: string[]) {
   return result.stdout.trim()
 }
 
-/** `name<TAB>language` rows as one line per language: `es-ES: Eddy, Mónica`. */
+/** `name<TAB>language` rows as one line per language: `es-ES: Eddy, Mónica`. A voice installed in two qualities is listed once: its name picks the best. */
 function formatNamedVoices (output: string) {
-  const byLanguage = new Map<string, string[]>()
+  const byLanguage = new Map<string, Set<string>>()
   for (const line of output.split(/\r?\n/).map(row => row.trim()).filter(Boolean)) {
     const [name = '', language = '?'] = line.split('\t')
-    byLanguage.set(language, [...(byLanguage.get(language) ?? []), name])
+    byLanguage.set(language, (byLanguage.get(language) ?? new Set()).add(name))
   }
-  return [...byLanguage].sort(([a], [b]) => a.localeCompare(b)).map(([language, names]) => `${language}: ${names.join(', ')}`)
+  return [...byLanguage].sort(([a], [b]) => a.localeCompare(b)).map(([language, names]) => `${language}: ${[...names].join(', ')}`)
 }
 
 /** Lists voices exposed by this system's speech synthesizers. */
