@@ -9,7 +9,9 @@ A Claude Code mod: click `⏸︎ narrator off` at the bottom right of the prompt
 
 The switch reads like the footer's mode labels (`⏵⏵ auto mode on`), in quiet colors: `⏵ narrator on` in green, `⏸︎ narrator off` in gray. A click switches it (in fullscreen, where the terminal reports clicks); `/narrator` does it anywhere.
 
-Where the footer is short the switch gives up `on` or `off`, then `narrator`, and stays a `⏵` or a `⏸︎` in its color, so the row never breaks in two. Beside [Sub Meter](../sub-meter), the meter shrinks first.
+While it speaks the switch reads `⏹︎ narrating` in blue, a lighter blue sweeping across it from left to right, and a click stops it, leaving the narrator on. When narrations of other windows wait their turn behind it, it reads `⏭︎ narrating`, and a click skips to the next one.
+
+Where the footer is short the switch gives up `on` or `off`, then `narrator` (or `narrating`), and stays a `⏵`, `⏸︎`, `⏹︎` or `⏭︎` in its color, so the row never breaks in two. Beside [Sub Meter](../sub-meter), the meter shrinks first.
 
 When a turn ends, Haiku (at low effort, so it is quick) reads your request, the tools Claude used and its final message, and writes one or two short spoken sentences in first person ("I added the narrator and the tests pass"), in the language you wrote in. Haiku also names that language, and the mod picks the best voice installed for it; where there is none, the English one. A short answer already says it, so it is read out as it is, with no Haiku call: a path by its file's name (`hooks/register.tsx`: "register") and no commit hashes, in the language its words or your request tell, else the one the last narration was in (on Windows and Linux, Haiku narrates it while neither tells; macOS tells the language from the text).
 
@@ -58,11 +60,11 @@ In `/config`:
 
 ## Several windows
 
-Every window shares one line, a folder in your temp directory: when two sessions finish together, their narrations are said one after the other, in the order they were ready. On Windows the line is Windows' own, and WSL's windows share it. One that would wait behind three others, or for two minutes, is dropped. A window that closes never holds the line. A new prompt, `/narrator stop` or switching it off cuts a narration short, also while it waits its turn.
+Every window shares one line, a folder in your temp directory: when two sessions finish together, their narrations are said one after the other, in the order they were ready. On Windows the line is Windows' own, and WSL's windows share it. One that would wait behind three others, or for two minutes, is dropped. A window that closes never holds the line. A new prompt, `/narrator stop` or switching it off cuts a narration short, also while it waits its turn; a click on `⏭︎ narrating` cuts the one being said and lets the next speak.
 
 ## How it works
 
-One hooks module ([`hooks/register.tsx`](hooks/register.tsx)): a `ui.render` hook on the footer's `SessionMode` draws the switch as a Button, as wide as the terminal's width leaves room for beside the mode label and the hint (which a hook on `PromptHint` measures), `turn.start` and `tool.call` note the request and each tool call of the main loop, and `turn.complete` asks the model for the narration and hands it to a speaker ([`hooks/speaker.ts`](hooks/speaker.ts)): JavaScript for Automation on macOS, PowerShell on Windows, a shell wrapper on Linux. Each writes a `.` while it speaks, so the mod can end it the moment you send a new prompt. Where none works, the engine's own `$.audio.speak`.
+One hooks module ([`hooks/register.tsx`](hooks/register.tsx)): a `ui.render` hook on the footer's `SessionMode` draws the switch as a Button, as wide as the terminal's width leaves room for beside the mode label and the hint (which a hook on `PromptHint` measures), `turn.start` and `tool.call` note the request and each tool call of the main loop, and `turn.complete` asks the model for the narration and hands it to a speaker ([`hooks/speaker.ts`](hooks/speaker.ts)): JavaScript for Automation on macOS, PowerShell on Windows, a shell wrapper on Linux. Each writes a `.` while it speaks, so the mod can end it the moment you send a new prompt, and `waiting <n>` when the number of narrations waiting behind it changes, which the switch shows. Where none works, the engine's own `$.audio.speak`.
 
 ## Development
 

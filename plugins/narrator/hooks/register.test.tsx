@@ -18,6 +18,8 @@ type World = {
   processErrors?: string[]
   unknownVoices?: string[]
   speaker?: 'speaks' | 'talks on' | 'fails'
+  /** How many narrations of other windows the speaker says wait their turn behind it. */
+  waiting?: number
   hasEngineVoice?: boolean
   store?: Record<string, unknown>
 }
@@ -26,7 +28,7 @@ type World = {
  * Everything beneath the mod: the session, the store, the system and its synthesizers, the model
  * that writes the narration, and the engine's own `$.audio.speak`.
  */
-function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', table = '', processErrors = [], unknownVoices = [], speaker = 'speaks', hasEngineVoice = true, store = {} }: World = {}) {
+function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', table = '', processErrors = [], unknownVoices = [], speaker = 'speaks', waiting = 0, hasEngineVoice = true, store = {} }: World = {}) {
   const clock = mock.clock(on, { now: 0 })
   const kept: Record<string, unknown> = { ...store }
   on('store.get', ($, e) => ({ value: kept[e.key] }))
@@ -92,7 +94,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
         return { value: { code: 1, signal: null } }
       }
       const wanted = e.env?.NARRATOR_VOICE ?? ''
-      yield { stream: 'stdout' as const, text: `pid 42\n${unknownVoices.includes(wanted) ? `no voice ${wanted}\n` : ''}voice Luisa\n` }
+      yield { stream: 'stdout' as const, text: `pid 42\n${unknownVoices.includes(wanted) ? `no voice ${wanted}\n` : ''}voice Luisa\n${waiting > 0 ? `waiting ${waiting}\n` : ''}` }
       heard()
       while (speaker === 'talks on') {
         await clock.sleep(100)
@@ -125,6 +127,9 @@ const footer = ($: Engine, modes: string[] = [], columns?: number) =>
   $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'SessionMode', props: { modes }, viewport: columns === undefined ? undefined : { columns, rows: 30 } })
 const hint = ($: Engine, text: string) =>
   $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: text } })
+/** What the sweep lights on the switch: the text in the lighter blue, empty between sweeps. */
+const swept = async (ui: Awaited<ReturnType<typeof footer>>) =>
+  (await ui.findAll({ type: 'Text' })).find(text => text.props.color === 'permissionShimmer')?.text ?? ''
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
 const narrator = ($: Engine, args = '') => $.command.run({ command: 'narrator', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
 const turn = async ($: Engine, { prompt = 'add a narrator', answer = LONG, agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {
@@ -430,6 +435,82 @@ test('a new prompt silences the narration on its way', async ($, on) => {
   await $.prompt.submit({ text: 'next task', wait: false, origin: { kind: 'composer' } })
   await w.clock.advance(100)
   expect(w.spoken[0]!.isEnded).toBe(true)
+})
+
+test('while it speaks the switch reads narrating with a stop sign: a click stops it and leaves it on', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on' })
+  await startSession($)
+  const ui = await footer($)
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏹︎ narrating')
+  expect((await ui.find({ type: 'Text', text: '⏹︎ narrating' }))?.props.color).toBe('permission')
+  await ui.press({ key: 'narrator' })
+  await w.clock.advance(100)
+  expect(w.spoken[0]!.isEnded).toBe(true)
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+  expect(w.store.enabled).toBe(true)
+})
+
+test('with narrations of other windows waiting their turn, the sign skips to the next one', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on', waiting: 2 })
+  await startSession($)
+  const ui = await footer($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏭︎ narrating')
+  await ui.press({ key: 'narrator' })
+  await w.clock.advance(100)
+  expect(w.spoken[0]!.isEnded).toBe(true)
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+})
+
+test('while it speaks a lighter blue sweeps the switch from left to right, and stops with it', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on' })
+  await startSession($)
+  const ui = await footer($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  // What the sweep lights, a tenth of a second at a time, for two sweeps.
+  const lit: string[] = []
+  for (let i = 0; i < 36; i++) {
+    await w.clock.advance(100)
+    lit.push(await swept(ui))
+  }
+  const from = lit.indexOf('⏹︎')
+  expect(from).toBeGreaterThanOrEqual(0)
+  expect(lit.slice(from, from + 18)).toEqual(['⏹︎', '⏹︎ ', '⏹︎ n', ' na', 'nar', 'arr', 'rra', 'rat', 'ati', 'tin', 'ing', 'ng', 'g', '', '', '', '', ''])
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏹︎ narrating')
+  await ui.press({ key: 'narrator' })
+  await w.clock.advance(100)
+  await w.clock.advance(100)
+  expect(await swept(ui)).toBe('')
+  expect((await ui.find({ type: 'Text', text: '⏵ narrator on' }))?.props.color).toBe('success')
+})
+
+test('narrating gives up its word where the row is short', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on' })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect((await (await footer($, [], 49)).find({ key: 'narrator' }))?.text).toBe('⏹︎ narrating')
+  expect((await (await footer($, [], 48)).find({ key: 'narrator' }))?.text).toBe('⏹︎')
+})
+
+test('once it has said it, the switch reads on again', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const ui = await footer($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  await w.settled()
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
 })
 
 test('/narrator stop silences it and leaves it on', async ($, on) => {

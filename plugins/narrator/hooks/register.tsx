@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderNode, RenderViewport } from 'claude-code'
+import type { EngineInterface, Register, RenderNode, RenderViewport, Timer } from 'claude-code'
 
 import { LINUX, MACOS, MACOS_VOICES, QUEUE, WINDOWS, WINDOWS_VOICES, dispatcherRate, espeakWords, powershell } from './speaker'
 import { cut, guessLanguage, parseNarration, plain } from './text'
@@ -9,15 +9,29 @@ type Platform = 'macos' | 'windows' | 'linux' | 'other'
 type Command = { argv: string[]; env: Record<string, string>; program: string; isFallback?: boolean }
 /** How a speaker spoke: the voice it used, and whether that is not the one asked for (none matched); or that the line dropped it. */
 type Spoke = { voice: string; isFallback: boolean; isSkipped?: boolean }
-/** One narration: the model call that writes it, then the program that speaks it, until silenced. */
-type Narration = { isActive: boolean; abort: AbortController }
+/**
+ * One narration: the model call that writes it, then the program that speaks it, until silenced;
+ * once that speaks, how many narrations of other windows wait their turn behind it.
+ */
+type Narration = { isActive: boolean; abort: AbortController; isSpeaking?: boolean; waiting?: number }
 /** The synthesizer found on Linux, the languages it has voices for and their names, lowercased (empty: it did not say). */
 type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<string>; names: Set<string> }
 
 // The switch at the right of the prompt footer, in the style of the mode labels (⏵⏵ auto mode on),
-// each in a quiet color. U+FE0E keeps the pause sign a text glyph, never an emoji.
-const SWITCH_ON = { icon: '\u23F5', state: 'on', color: 'success' } as const
-const SWITCH_OFF = { icon: '\u23F8\uFE0E', state: 'off', color: 'inactive' } as const
+// each in a quiet color, with the words it gives up first where the row is short. While it speaks,
+// a click goes on to the next narration in the line, or, with none waiting, stops it. U+FE0E keeps
+// the pause, skip and stop signs text glyphs, never emojis.
+const SWITCH_ON = { icon: '\u23F5', words: ['narrator on', 'narrator'], color: 'success' } as const
+const SWITCH_OFF = { icon: '\u23F8\uFE0E', words: ['narrator off', 'narrator'], color: 'inactive' } as const
+const SWITCH_SKIP = { icon: '\u23ED\uFE0E', words: ['narrating'], color: 'permission' } as const
+const SWITCH_STOP = { icon: '\u23F9\uFE0E', words: ['narrating'], color: 'permission' } as const
+// While it speaks a lighter blue, the theme's own shimmer of it, sweeps the switch from left to
+// right: three cells wide, a cell a tenth of a second (the footer redraws ten times a second at
+// most), and a pause of four steps between sweeps.
+const SHIMMER = 'permissionShimmer'
+const SWEEP_MS = 100
+const SWEEP_WIDTH = 3
+const SWEEP_PAUSE = 4
 // The terminal footer's row: two columns of padding at each end, the mode label at the left
 // (`⏵⏵ accept edits on ·`, the longest but bypass's) and the hint after it, two columns at least
 // between that and what is drawn here.
@@ -49,6 +63,8 @@ Rules:
 Reply in exactly this form: the first line holds only the ISO 639-1 code of the language you speak (es, en, pt, fr...), and the narration starts on the second line.`
 
 const enabled = atom({ plugin: 'narrator', key: 'isEnabled' } as const, false)
+const speech = atom({ plugin: 'narrator', key: 'speech' } as const, null)
+const sweepStep = atom({ plugin: 'narrator', key: 'sweepStep' } as const, 0)
 
 /** An answer this short is read out as it is: no model call to write a narration of it. */
 const SHORT_ANSWER = 200
@@ -66,6 +82,8 @@ let hasWarned = false
 let hintWidth = 0
 // The language the last narration was said in: a short answer whose words do not tell is read in it.
 let spokenLanguage = ''
+// The sweep across the switch, running while it speaks.
+let sweep: Timer | undefined
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -240,6 +258,29 @@ async function listVoices ($: EngineInterface) {
   return sections.join('\n\n')
 }
 
+/** Shows on the switch whether this session's narration is speaking, and how many wait behind it; while it does, sweeps it. */
+async function showSpeech ($: EngineInterface) {
+  const speaking = current?.isSpeaking ? { waiting: current.waiting ?? 0 } : null
+  await update($, speech, () => speaking)
+  if (speaking && !sweep) sweep = $.clock.every(SWEEP_MS, () => void update($, sweepStep, step => step + 1))
+  if (!speaking && sweep) {
+    sweep.cancel()
+    sweep = undefined
+    await update($, sweepStep, () => 0)
+  }
+}
+
+/** Follows what a speaker says of itself: `voice` once it speaks, `waiting <n>` while others wait their turn. */
+async function follow ($: EngineInterface, narration: Narration, said: string) {
+  const isSpeaking = narration.isSpeaking === true || /^voice /m.test(said)
+  const told = [...said.matchAll(/^waiting (\d+)\r?$/gm)].at(-1)?.[1]
+  const waiting = told === undefined ? narration.waiting ?? 0 : Number(told)
+  if (isSpeaking === (narration.isSpeaking === true) && waiting === (narration.waiting ?? 0)) return
+  narration.isSpeaking = isSpeaking
+  narration.waiting = waiting
+  await showSpeech($)
+}
+
 /** Runs one speaker till it ends or the narration is silenced; how it spoke, if it did. */
 async function play ($: EngineInterface, narration: Narration, command: Command): Promise<Spoke | undefined> {
   let said = ''
@@ -248,9 +289,15 @@ async function play ($: EngineInterface, narration: Narration, command: Command)
     for await (const { text } of $.process.spawn(command)) {
       said = (said + text.replace(/^\.\r?$/gm, '')).slice(-4000)
       if (!narration.isActive) break
+      await follow($, narration, said)
     }
   } catch (error) {
     failure = message(error)
+  } finally {
+    if (narration.isSpeaking) {
+      narration.isSpeaking = false
+      await showSpeech($)
+    }
   }
   const voice = /^voice (.+?)\r?$/m.exec(said)?.[1]
   // Behind others for too long: the line dropped it, and nothing else should say it now.
@@ -354,6 +401,12 @@ async function narrate ($: EngineInterface, answer: string) {
   }
 }
 
+/** A click on the switch: while it speaks, on to the next narration in the line or quiet; else on or off. */
+function press ($: EngineInterface) {
+  if (current?.isSpeaking) return silence()
+  void setEnabled($)
+}
+
 /** Switches the narrator on or off (no `value`: the other way), and keeps it for the next sessions. */
 async function setEnabled ($: EngineInterface, value?: boolean) {
   let isEnabled = false
@@ -373,6 +426,25 @@ function isBlank (node: RenderNode | undefined): boolean {
 
 /** Columns a text takes: one per character, none for a variation selector. */
 const widthOf = (text: string) => [...text.replace(/[\uFE0E\uFE0F]/g, '')].length
+
+/** A text's cells: one per character, a variation selector kept with the one before it. */
+function cellsOf (text: string) {
+  const cells: string[] = []
+  for (const char of text) {
+    if (/[\uFE0E\uFE0F]/.test(char) && cells.length > 0) cells[cells.length - 1] += char
+    else cells.push(char)
+  }
+  return cells
+}
+
+/** A label cut where the sweep is at `step`: before it, under it (empty between sweeps) and after it. */
+function sweptAt (label: string, step: number) {
+  const cells = cellsOf(label)
+  const at = (step % (cells.length + SWEEP_WIDTH + SWEEP_PAUSE)) - SWEEP_WIDTH
+  const start = Math.min(Math.max(at, 0), cells.length)
+  const end = Math.min(Math.max(at + SWEEP_WIDTH, 0), cells.length)
+  return [cells.slice(0, start), cells.slice(start, end), cells.slice(end)].map(part => part.join(''))
+}
 
 /** Columns a drawing beneath takes on one row; the engine's own node draws `modes`, joined by ` & `. */
 function widthOfNode (node: RenderNode | undefined, modes: readonly string[]): number {
@@ -472,26 +544,34 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  // The switch, last in the footer's right end: a click turns the narrator on or off.
-  // Where the row is short it gives up "on" or "off", then "narrator": its sign and color still tell.
+  // The switch, last in the footer's right end: a click turns the narrator on or off, and while it
+  // speaks, skips to the next narration in the line or stops it.
+  // Where the row is short it gives up "on" or "off", then "narrator" (or "narrating"): its sign and color still tell.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const isEnabled = await read($, enabled)
+    const speaking = await read($, speech)
+    const step = speaking ? await read($, sweepStep) : 0
     // Beneath: the engine's mode labels, or another plugin's drawing there.
     const beneath = await next(e)
     const hasBeneath = e.props.modes.length > 0 || !isBlank(beneath)
     const { Box, Button, Text } = $.ui.resolve(e)
-    const { icon, state, color } = isEnabled ? SWITCH_ON : SWITCH_OFF
+    const { icon, words, color } = speaking ? (speaking.waiting > 0 ? SWITCH_SKIP : SWITCH_STOP) : isEnabled ? SWITCH_ON : SWITCH_OFF
     const room = roomOf(e) -
       (hasBeneath ? widthOfNode(beneath, e.props.modes) + SEPARATOR.length : 0) -
       (holdsPlugin(beneath) ? 0 : AROUND)
-    const label = [`${icon} narrator ${state}`, `${icon} narrator`].find(text => widthOf(text) <= room) ?? icon
+    const label = words.map(word => `${icon} ${word}`).find(text => widthOf(text) <= room) ?? icon
+    const [before, under, after] = speaking ? sweptAt(label, step) : [label, '', '']
 
     return (
       <Box flexDirection="row">
         {hasBeneath ? beneath : null}
         {hasBeneath ? <Text dimColor>{SEPARATOR}</Text> : null}
-        <Button key="narrator" plain onPress={() => void setEnabled($)}>
-          <Text color={color}>{label}</Text>
+        <Button key="narrator" plain onPress={() => press($)}>
+          <Text color={color}>
+            {before || null}
+            {under ? <Text color={SHIMMER}>{under}</Text> : null}
+            {after || null}
+          </Text>
         </Button>
       </Box>
     )
