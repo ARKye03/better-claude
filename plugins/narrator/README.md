@@ -26,7 +26,13 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 /narrator         switch on or off
 /narrator on|off
 /narrator stop    quiet now, stay on
+/narrator voices  list the installed voices, by language
+/narrator test [voice]  say a short sample with a voice
 ```
+
+`/narrator voices` lists the voices your system has, one line per language (`es-ES: Eddy, Mónica`); on macOS it leaves out the novelty ones (Bahh, Bells...). On Linux it shows speech-dispatcher's table, whose NAME column holds the voices of its output module, and eSpeak's.
+
+`/narrator test` says a short English sample with the voice in `/config` (or, if it is empty, the one the system picks), and tells you which voice spoke. Pass a voice to try it without changing `/config`: `/narrator test Microsoft Helena`. A name several languages share (Eddy) can take its language, as `/narrator voices` shows it: `/narrator test Eddy (es-MX)`. If the system has no voice by that name, the preview says so and names the one it used instead.
 
 ### Better voices
 
@@ -45,7 +51,7 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 
 In `/config`:
 
-- **Voice**: a voice's name (`Mónica`, `Microsoft Helena`) to always speak with. Empty: the best one for the language.
+- **Voice**: a voice's name (`Mónica`, `Microsoft Helena`, or `Eddy (es-MX)` for one language's) to always speak with. Empty: the best one for the language. `/narrator voices` lists them and `/narrator test` tries one.
 - **Speed**: how fast it speaks, as a multiple of the voice's normal pace, from `0.5` to `2`: `1.2` by default, a little quicker; `1` is the voice's own. The engine's voice, the last resort, keeps its own pace.
 - **Model that writes the narration**: `haiku` by default.
 
