@@ -48,9 +48,11 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   on('prompt.submit', ($, e) => ({ text: e.text }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('command.run', () => ({ text: 'no plugin answered' }))
-  // What the engine draws where the mod draws nothing: its own node, as core answers it; with mode labels, a Box the tests find.
+  // What the engine draws where the mod draws nothing: its own node, as core answers it; with mode labels, a Box the tests find;
+  // the hint line as its text.
   on('ui.render', ($, e) => {
-    const { Box } = $.ui.resolve(e)
+    const { Box, Text } = $.ui.resolve(e)
+    if ('hint' in e.props) return <Text>{e.props.hint}</Text>
     return e.props.modes.length > 0 ? <Box key="engine" /> : ({ type: 'engine', ref: 0 } as const)
   })
   on('ui.toast', ($, e) => {
@@ -101,8 +103,10 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   return { clock, store: kept, spoken, said, prompts, efforts, toasts, nextSpeech, settled }
 }
 
-const footer = ($: Engine, modes: string[] = []) =>
-  $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'SessionMode', props: { modes } })
+const footer = ($: Engine, modes: string[] = [], columns?: number) =>
+  $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'SessionMode', props: { modes }, viewport: columns === undefined ? undefined : { columns, rows: 30 } })
+const hint = ($: Engine, text: string) =>
+  $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: text } })
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
 const narrator = ($: Engine, args = '') => $.command.run({ command: 'narrator', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
 const turn = async ($: Engine, { prompt = 'add a narrator', answer = 'Added the **narrator** in `plugins/narrator`.', agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {
@@ -163,6 +167,42 @@ test('on reads in the success color, off in the inactive one', async ($, on) => 
   expect((await ui.find({ type: 'Text', text: '⏸︎ narrator off' }))?.props.color).toBe('inactive')
   await ui.press({ key: 'narrator' })
   expect((await ui.find({ type: 'Text', text: '⏵ narrator on' }))?.props.color).toBe('success')
+})
+
+// The footer's row at 52 columns leaves the switch its 14: 4 of padding, 2 between, 20 for the mode
+// label, and 12 for a meter that may wrap it.
+test('where the row is short the switch gives up "off", then "narrator"', async ($, on) => {
+  world(on)
+  await startSession($)
+  expect((await (await footer($, [], 52)).find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator off')
+  expect((await (await footer($, [], 51)).find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator')
+  expect((await (await footer($, [], 47)).find({ key: 'narrator' }))?.text).toBe('⏸︎')
+})
+
+test('the hint beside the mode label takes its room from the switch', async ($, on) => {
+  world(on, { store: { enabled: true } })
+  await startSession($)
+  await hint($, '? for shortcuts')
+  expect((await (await footer($, [], 67)).find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+  expect((await (await footer($, [], 66)).find({ key: 'narrator' }))?.text).toBe('⏵ narrator')
+})
+
+test("another plugin's meter beneath keeps its room: the switch shrinks", { plugins: [{
+  name: 'meter',
+  register (on) {
+    on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+      await next(e)
+      const { Text } = $.ui.resolve(e)
+      return <Text>{'5h 58% ↻ 2h 10m'}</Text>
+    })
+  }
+}] }, async ($, on) => {
+  world(on, { store: { enabled: true } })
+  await startSession($)
+  const ui = await footer($, [], 57)
+  expect((await ui.findAll({ type: 'Text' })).map(text => text.text)).toEqual(['5h 58% ↻ 2h 10m', ' · ', '⏵ narrator on'])
+  expect((await (await footer($, [], 56)).find({ key: 'narrator' }))?.text).toBe('⏵ narrator')
+  expect((await (await footer($, [], 40)).find({ key: 'narrator' }))?.text).toBe('⏵')
 })
 
 test('after a turn, Haiku writes what Claude did and macOS says it in the language Haiku names', async ($, on) => {

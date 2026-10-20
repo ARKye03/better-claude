@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderNode } from 'claude-code'
+import type { EngineInterface, Register, RenderNode, RenderViewport } from 'claude-code'
 
 import { LINUX, MACOS, WINDOWS, dispatcherRate, espeakWords, powershell } from './speaker'
 import { cut, guessLanguage, parseNarration, plain } from './text'
@@ -14,8 +14,18 @@ type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<s
 
 // The switch at the right of the prompt footer, in the style of the mode labels (⏵⏵ auto mode on),
 // each in a quiet color. U+FE0E keeps the pause sign a text glyph, never an emoji.
-const SWITCH_ON = { label: '\u23F5 narrator on', color: 'success' } as const
-const SWITCH_OFF = { label: '\u23F8\uFE0E narrator off', color: 'inactive' } as const
+const SWITCH_ON = { icon: '\u23F5', state: 'on', color: 'success' } as const
+const SWITCH_OFF = { icon: '\u23F8\uFE0E', state: 'off', color: 'inactive' } as const
+// The terminal footer's row: two columns of padding at each end, the mode label at the left
+// (`⏵⏵ accept edits on ·`, the longest but bypass's) and the hint after it, two columns at least
+// between that and what is drawn here.
+const FOOTER_PADDING = 4
+const FOOTER_GAP = 2
+const MODE_LABEL = 20
+const SEPARATOR = ' · '
+// Room left, when nothing of another plugin is beneath, for one that may wrap the switch and draw
+// before it: Sub Meter's shortest meter (`week 100%`) and its separator.
+const AROUND = 9 + SEPARATOR.length
 // A little quicker than the voice's normal pace, unless the settings say otherwise.
 const SPEED = 1.2
 const MAX_ACTIONS = 40
@@ -46,6 +56,8 @@ let platform: Promise<Platform> | undefined
 let wsl: Promise<boolean> | undefined
 let linuxSpeech: Promise<LinuxSpeech> | undefined
 let hasWarned = false
+// The hint as last drawn on the terminal, in columns.
+let hintWidth = 0
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -226,6 +238,29 @@ function isBlank (node: RenderNode | undefined): boolean {
   return (node.type === 'Box' || node.type === 'Text') && (node.children ?? []).every(isBlank)
 }
 
+/** Columns a text takes: one per character, none for a variation selector. */
+const widthOf = (text: string) => [...text.replace(/[\uFE0E\uFE0F]/g, '')].length
+
+/** Columns a drawing beneath takes on one row; the engine's own node draws `modes`, joined by ` & `. */
+function widthOfNode (node: RenderNode | undefined, modes: readonly string[]): number {
+  if (node === undefined || node === null) return 0
+  if (typeof node === 'string') return widthOf(node)
+  if (node.type === 'engine') return widthOf(modes.join(' & '))
+  return (node.children ?? []).reduce((sum, child) => sum + widthOfNode(child, modes), 0)
+}
+
+/** Whether a drawing beneath holds another plugin's: the engine stamps each hook's root with its plugin. */
+function holdsPlugin (node: RenderNode | undefined): boolean {
+  if (node === undefined || node === null || typeof node === 'string' || node.type === 'engine') return false
+  return 'part' in node || (node.children ?? []).some(holdsPlugin)
+}
+
+/** Columns the footer leaves at its right end on the terminal, beside the mode label and the hint; elsewhere, no limit. */
+function roomOf (e: { surface: string; viewport?: RenderViewport }) {
+  if (e.surface !== 'terminal' || e.viewport === undefined) return Infinity
+  return e.viewport.columns - FOOTER_PADDING - FOOTER_GAP - MODE_LABEL - (hintWidth > 0 ? 1 + hintWidth : 0)
+}
+
 export const register: Register = (on, options) => {
   const speed = Number(options.speed)
   settings = {
@@ -291,22 +326,36 @@ export const register: Register = (on, options) => {
   })
 
   // The switch, last in the footer's right end: a click turns the narrator on or off.
+  // Where the row is short it gives up "on" or "off", then "narrator": its sign and color still tell.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const isEnabled = await read($, enabled)
     // Beneath: the engine's mode labels, or another plugin's drawing there.
     const beneath = await next(e)
     const hasBeneath = e.props.modes.length > 0 || !isBlank(beneath)
     const { Box, Button, Text } = $.ui.resolve(e)
-    const { label, color } = isEnabled ? SWITCH_ON : SWITCH_OFF
+    const { icon, state, color } = isEnabled ? SWITCH_ON : SWITCH_OFF
+    const room = roomOf(e) -
+      (hasBeneath ? widthOfNode(beneath, e.props.modes) + SEPARATOR.length : 0) -
+      (holdsPlugin(beneath) ? 0 : AROUND)
+    const label = [`${icon} narrator ${state}`, `${icon} narrator`].find(text => widthOf(text) <= room) ?? icon
 
     return (
       <Box flexDirection="row">
         {hasBeneath ? beneath : null}
-        {hasBeneath ? <Text dimColor> · </Text> : null}
+        {hasBeneath ? <Text dimColor>{SEPARATOR}</Text> : null}
         <Button key="narrator" plain onPress={() => void setEnabled($)}>
           <Text color={color}>{label}</Text>
         </Button>
       </Box>
     )
+  })
+
+  // The hint line beside the mode label: its width tells the switch how much room is left.
+  on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+    if (e.surface === 'terminal' && widthOf(e.props.hint) !== hintWidth) {
+      hintWidth = widthOf(e.props.hint)
+      $.ui.invalidate('ui.render')
+    }
+    return next(e)
   })
 }
