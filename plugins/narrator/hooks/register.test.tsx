@@ -116,13 +116,18 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   return { clock, store: kept, spoken, said, prompts, efforts, toasts, commandHints, nextSpeech, settled }
 }
 
+/** An answer too long to be read as it is: the narrator has a model write what to say. */
+const LONG = `Added the **narrator** in \`plugins/narrator\`. ${'It speaks after every turn, in your language, with the best voice the system has. '.repeat(3)}`
+/** What follows the line every speaker waits in (sh -c <queue> narrator-line). */
+const behindLine = (run: Spoken) => run.argv.slice(4)
+
 const footer = ($: Engine, modes: string[] = [], columns?: number) =>
   $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'SessionMode', props: { modes }, viewport: columns === undefined ? undefined : { columns, rows: 30 } })
 const hint = ($: Engine, text: string) =>
   $.ui.mount({ plugin: 'narrator', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: text } })
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
 const narrator = ($: Engine, args = '') => $.command.run({ command: 'narrator', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
-const turn = async ($: Engine, { prompt = 'add a narrator', answer = 'Added the **narrator** in `plugins/narrator`.', agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {
+const turn = async ($: Engine, { prompt = 'add a narrator', answer = LONG, agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {
   await $.turn.start({ text: prompt, turnId: 't1', agentId })
   await $.tool.call({ tool: 'Write', file_path: '/project/plugins/narrator/hooks/register.ts', content: 'x', agentId } as never)
   await $.tool.call({ tool: 'Bash', command: 'claude plugin test .', description: 'Run the mod tests', agentId } as never)
@@ -220,7 +225,8 @@ test('/narrator test previews a named voice without changing narrator settings',
     NARRATOR_TEXT: 'Hello! This is a voice preview for Narrator.',
     NARRATOR_LANG: 'en',
     NARRATOR_VOICE: 'Mónica',
-    NARRATOR_SPEED: '1.3'
+    NARRATOR_SPEED: '1.3',
+    NARRATOR_TICKET: '0000000000000'
   })
   await narrator($, 'test')
   expect(w.spoken[1]!.env.NARRATOR_VOICE).toBe('Luisa')
@@ -379,8 +385,8 @@ test('after a turn, Haiku writes what Claude did and macOS says it in the langua
   expect(w.prompts[0]).toContain('- Bash: Run the mod tests')
   expect(w.prompts[0]).toContain('Added the **narrator**')
   expect(w.spoken).toHaveLength(1)
-  expect(w.spoken[0]!.argv.slice(0, 3)).toEqual(['osascript', '-l', 'JavaScript'])
-  expect(w.spoken[0]!.env).toEqual({ NARRATOR_TEXT: 'He añadido el narrador y los tests pasan.', NARRATOR_LANG: 'es', NARRATOR_VOICE: '', NARRATOR_SPEED: '1.3' })
+  expect(behindLine(w.spoken[0]!).slice(0, 3)).toEqual(['osascript', '-l', 'JavaScript'])
+  expect(w.spoken[0]!.env).toEqual({ NARRATOR_TEXT: 'He añadido el narrador y los tests pasan.', NARRATOR_LANG: 'es', NARRATOR_VOICE: '', NARRATOR_SPEED: '1.3', NARRATOR_TICKET: '0000000000000' })
 })
 
 test('the voice setting reaches the speaker', { options: { voice: 'Mónica' } }, async ($, on) => {
@@ -407,7 +413,7 @@ test("a subagent's turn and an interrupted turn are not narrated", async ($, on)
   await turn($, { agentId: 'agent-1', answer: 'subagent report' })
   await turn($, { reason: 'aborted', answer: 'half done' })
   const speech = w.nextSpeech()
-  await turn($, { answer: 'all done' })
+  await turn($, { answer: `all done. ${LONG}` })
   await speech
   expect(w.prompts).toHaveLength(1)
   expect(w.prompts[0]).toContain('all done')
@@ -438,13 +444,14 @@ test('/narrator stop silences it and leaves it on', async ($, on) => {
   expect(w.store.enabled).toBe(true)
 })
 
-test('without a narration from the model, the answer itself is read, as plain text', async ($, on) => {
+test('without a narration from the model, the answer itself is read, as plain text', { options: { shortAnswer: 0 } }, async ($, on) => {
   const w = world(on, { store: { enabled: true }, reply: null })
   await startSession($)
   const speech = w.nextSpeech()
   await turn($, { answer: 'He creado el **narrador** en `plugins/narrator` y los tests pasan para que lo pruebes.' })
   await speech
-  expect(w.spoken[0]!.env.NARRATOR_TEXT).toBe('He creado el narrador en plugins/narrator y los tests pasan para que lo pruebes.')
+  expect(w.spoken[0]!.env.NARRATOR_TEXT).toBe('He creado el narrador en narrator y los tests pasan para que lo pruebes.')
+  expect(w.prompts).toHaveLength(1)
   expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('es')
 })
 
@@ -456,6 +463,7 @@ test('Windows speaks through PowerShell', async ($, on) => {
   await speech
   expect(w.spoken[0]!.argv.slice(0, 2)).toEqual(['powershell', '-NoProfile'])
   expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('es')
+  expect(w.spoken[0]!.env.NARRATOR_TICKET).toBe('0000000000000')
 })
 
 test("WSL speaks with Windows' voices, its variables crossing over", async ($, on) => {
@@ -465,7 +473,7 @@ test("WSL speaks with Windows' voices, its variables crossing over", async ($, o
   await turn($)
   await speech
   expect(w.spoken[0]!.argv[0]).toBe('powershell.exe')
-  expect(w.spoken[0]!.env.WSLENV).toBe('NARRATOR_TEXT/u:NARRATOR_LANG/u:NARRATOR_VOICE/u:NARRATOR_SPEED/u')
+  expect(w.spoken[0]!.env.WSLENV).toBe('NARRATOR_TEXT/u:NARRATOR_LANG/u:NARRATOR_VOICE/u:NARRATOR_SPEED/u:NARRATOR_TICKET/u')
 })
 
 test('Linux speaks with speech-dispatcher in the language Haiku names', async ($, on) => {
@@ -475,7 +483,7 @@ test('Linux speaks with speech-dispatcher in the language Haiku names', async ($
   await turn($)
   await speech
   expect(w.spoken[0]!.argv.slice(0, 2)).toEqual(['sh', '-c'])
-  expect(w.spoken[0]!.argv.slice(3)).toEqual(['narrator', 'spd-say', '-w', '-l', 'es', '-r', '18', '--', 'He añadido el narrador y los tests pasan.'])
+  expect(w.spoken[0]!.argv.slice(7)).toEqual(['narrator', 'spd-say', '-w', '-l', 'es', '-r', '18', '--', 'He añadido el narrador y los tests pasan.'])
   expect(w.spoken[0]!.env.NARRATOR_STOP).toBe('spd-say -S')
 })
 
@@ -485,7 +493,7 @@ test('at speed 1 speech-dispatcher keeps the rate it is set up with', { options:
   const speech = w.nextSpeech()
   await turn($)
   await speech
-  expect(w.spoken[0]!.argv.slice(3)).toEqual(['narrator', 'spd-say', '-w', '-l', 'es', '--', 'He añadido el narrador y los tests pasan.'])
+  expect(w.spoken[0]!.argv.slice(7)).toEqual(['narrator', 'spd-say', '-w', '-l', 'es', '--', 'He añadido el narrador y los tests pasan.'])
 })
 
 test('a language the synthesizer has no voice for is read in English', async ($, on) => {
@@ -494,7 +502,7 @@ test('a language the synthesizer has no voice for is read in English', async ($,
   const speech = w.nextSpeech()
   await turn($)
   await speech
-  expect(w.spoken[0]!.argv.slice(3)).toEqual(['narrator', 'espeak-ng', '-v', 'en', '-s', '228', '--', 'He añadido el narrador y los tests pasan.'])
+  expect(w.spoken[0]!.argv.slice(7)).toEqual(['narrator', 'espeak-ng', '-v', 'en', '-s', '228', '--', 'He añadido el narrador y los tests pasan.'])
 })
 
 test('where no speaker works, the engine speaks; where it cannot either, a toast says what to install', async ($, on) => {
@@ -521,9 +529,81 @@ test('a Linux with no synthesizer says what to install, once', async ($, on) => 
 })
 
 test('the narration is read as plain text, in the language it names', () => {
-  expect(parseNarration('es\nHe cambiado el **archivo** `register.ts`.')).toEqual({ language: 'es', text: 'He cambiado el archivo register.ts.' })
+  expect(parseNarration('es\nHe cambiado el **archivo** `register.ts`.')).toEqual({ language: 'es', text: 'He cambiado el archivo register.' })
   expect(parseNarration('"en"\n\nI fixed the tests.')).toEqual({ language: 'en', text: 'I fixed the tests.' })
   expect(parseNarration('He arreglado los tests y ahora todo pasa en la rama principal.').language).toBe('es')
   expect(plain('## Done\n- one\n- two [link](https://x.dev)\n```ts\ncode\n```\nend')).toBe('Done one two link end')
   expect(guessLanguage('ok')).toBe('')
+})
+
+test('a path is said by its name and a hash is left out; a date, a version or and/or stay', () => {
+  expect(plain('Hecho en `plugins/narrator/hooks/register.tsx` y `README.md`, commit `a1b2c3d`.')).toBe('Hecho en register y README, commit.')
+  expect(plain('Run /narrator on, see ~/.claude/settings.json or src/app/main; and/or 20/10/2026.')).toBe('Run narrator on, see settings or main; and/or 20/10/2026.')
+  expect(plain('Subí sub-meter a 0.2.2 (`abc1234`) y `npm test` pasa.')).toBe('Subí sub-meter a 0.2.2 y npm test pasa.')
+})
+
+test('a short answer is read as it is, with no model call', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($, { answer: 'Hecho: los tests pasan y el **narrador** habla.' })
+  await speech
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[0]!.env.NARRATOR_TEXT).toBe('Hecho: los tests pasan y el narrador habla.')
+})
+
+test('shortAnswer 0 narrates every answer', { options: { shortAnswer: 0 } }, async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($, { answer: 'all done' })
+  await speech
+  expect(w.prompts).toHaveLength(1)
+})
+
+test('a short answer is said in the language of the request, else the last narration', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, system: 'Linux', tools: '/usr/bin/spd-say\n' })
+  await startSession($)
+  let speech = w.nextSpeech()
+  await turn($, { prompt: 'arregla los tests de la cola', answer: 'Hecho.' })
+  await speech
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('es')
+  speech = w.nextSpeech()
+  await turn($, { prompt: 'ok', answer: 'Done.' })
+  await speech
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[1]!.env.NARRATOR_LANG).toBe('es')
+})
+
+test('a short answer in no language it tells is narrated on Windows and Linux, read on macOS', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, env: { OS: 'Windows_NT' } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($, { prompt: 'ok', answer: 'Done.' })
+  await speech
+  expect(w.prompts).toHaveLength(1)
+  expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('es')
+})
+
+test('on macOS a short answer is read in whatever language it is, with no model call', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($, { prompt: 'ok', answer: 'Done in `hooks/speaker.ts`.' })
+  await speech
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[0]!.env.NARRATOR_TEXT).toBe('Done in speaker.')
+  expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('')
+})
+
+test('every speaker waits in the line shared by all windows: a shell before it, PowerShell in its own', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect(w.spoken[0]!.argv.slice(0, 2)).toEqual(['sh', '-c'])
+  expect(w.spoken[0]!.argv[3]).toBe('narrator-line')
+  expect(w.spoken[0]!.env.NARRATOR_TICKET).toMatch(/^\d{13}$/)
 })
