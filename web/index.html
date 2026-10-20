@@ -671,7 +671,7 @@
           'claude plugin marketplace add midudev/better-claude',
           ...names.map(name => `claude plugin install ${name}@better-claude`),
           '',
-          `Then tell me to restart Claude Code so ${one ? 'it loads' : 'they load'}.`
+          `Then tell me to restart Claude Code so ${one ? 'it loads' : 'they load'}, and to get new versions on their own by turning on auto-update: /plugin → Marketplaces → better-claude → Enable auto-update.`
         ].join('\n')
       }
 
