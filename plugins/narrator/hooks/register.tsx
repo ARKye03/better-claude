@@ -213,10 +213,11 @@ async function setEnabled ($: EngineInterface, value?: boolean) {
   return isEnabled
 }
 
-/** Whether a drawing beneath shows nothing: no text, no control (the engine's own node is empty). */
+/** Whether a drawing beneath shows nothing: no text, no control (the engine's own node draws `modes`, counted apart). */
 function isBlank (node: RenderNode | undefined): boolean {
   if (node === undefined || node === null) return true
   if (typeof node === 'string') return node.trim() === ''
+  if (node.type === 'engine') return true
   return (node.type === 'Box' || node.type === 'Text') && (node.children ?? []).every(isBlank)
 }
 

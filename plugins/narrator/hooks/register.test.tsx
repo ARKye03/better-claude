@@ -48,10 +48,10 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   on('prompt.submit', ($, e) => ({ text: e.text }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('command.run', () => ({ text: 'no plugin answered' }))
-  // What the engine draws where the mod draws nothing
+  // What the engine draws where the mod draws nothing: its own node, as core answers it; with mode labels, a Box the tests find.
   on('ui.render', ($, e) => {
     const { Box } = $.ui.resolve(e)
-    return <Box key="engine" />
+    return e.props.modes.length > 0 ? <Box key="engine" /> : ({ type: 'engine', ref: 0 } as const)
   })
   on('ui.toast', ($, e) => {
     toasts.push(e.text)
