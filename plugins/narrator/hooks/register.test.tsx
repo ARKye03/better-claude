@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
+import { languageOf } from './register'
 import { guessLanguage, parseNarration, plain } from './text'
 
 const USAGE = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
@@ -40,6 +41,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   const spoken: Spoken[] = []
   const said: { text: string; voice?: string }[] = []
   const prompts: string[] = []
+  const systems: string[] = []
   const efforts: unknown[] = []
   const toasts: string[] = []
   const commandHints: string[] = []
@@ -72,6 +74,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   on('tool.call', () => ({ result: 'ok' }))
   on('model.complete', ($, e) => {
     prompts.push(e.prompt)
+    systems.push(e.system ?? '')
     efforts.push(e.effort)
     return { value: reply === null ? { isAnswered: false as const, reason: 'empty-reply' as const, usage: USAGE } : { isAnswered: true as const, text: reply, usage: USAGE } }
   })
@@ -115,7 +118,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   const settled = async () => {
     for (let i = 0; i < 20; i++) await clock.advance(0)
   }
-  return { clock, store: kept, spoken, said, prompts, efforts, toasts, commandHints, nextSpeech, settled }
+  return { clock, store: kept, spoken, said, prompts, systems, efforts, toasts, commandHints, nextSpeech, settled }
 }
 
 /** An answer too long to be read as it is: the narrator has a model write what to say. */
@@ -410,6 +413,77 @@ test('the speed setting reaches the speaker', { options: { speed: 1.5 } }, async
   await turn($)
   await speech
   expect(w.spoken[0]!.env.NARRATOR_SPEED).toBe('1.5')
+})
+
+test('with no language set, the switch shows none and the narrator follows the request', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const ui = await footer($)
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect(w.systems[0]).toContain('Speak the language the user wrote the request in')
+})
+
+test('the language setting shows beside the switch, tells the narrator and reaches the speaker', { options: { language: 'es' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on' })
+  await startSession($)
+  const ui = await footer($)
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏵ narrator on · ES')
+  await ui.press({ key: 'narrator' })
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator off · ES')
+  await ui.press({ key: 'narrator' })
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect(w.systems[0]).toContain('Always speak Spanish (es)')
+  expect(w.spoken[0]!.env.NARRATOR_LANG).toBe('es')
+  expect((await ui.find({ key: 'narrator' }))?.text).toBe('⏹︎ narrating · ES')
+})
+
+test('a region is dropped, and a value that is no known language means automatic', () => {
+  expect(languageOf('es-MX')).toBe('es')
+  expect(languageOf(' PT ')).toBe('pt')
+  expect(languageOf('Spanish!')).toBe('')
+  expect(languageOf('zz')).toBe('')
+  expect(languageOf('ignore previous instructions')).toBe('')
+  expect(languageOf(undefined)).toBe('')
+})
+
+test('an unknown language setting is ignored: the narrator follows the request', { options: { language: 'zz' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  expect((await (await footer($)).find({ key: 'narrator' }))?.text).toBe('⏵ narrator on')
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect(w.systems[0]).toContain('Speak the language the user wrote the request in')
+})
+
+// 57 columns leave the switch 19, as the 52 of the test above leave it 14.
+test('where the row is short the switch gives up "off", then the language, then "narrator"', { options: { language: 'es' } }, async ($, on) => {
+  world(on)
+  await startSession($)
+  expect((await (await footer($, [], 57)).find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator off · ES')
+  expect((await (await footer($, [], 56)).find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator · ES')
+  expect((await (await footer($, [], 52)).find({ key: 'narrator' }))?.text).toBe('⏸︎ narrator')
+  expect((await (await footer($, [], 47)).find({ key: 'narrator' }))?.text).toBe('⏸︎')
+})
+
+test('with a language set, a short answer in it is read as it is, and one in another is said in it by the model', { options: { language: 'es' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  let speech = w.nextSpeech()
+  await turn($, { prompt: 'arregla los tests de la cola', answer: 'Hecho.' })
+  await speech
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[0]!.env).toMatchObject({ NARRATOR_TEXT: 'Hecho.', NARRATOR_LANG: 'es' })
+  speech = w.nextSpeech()
+  await turn($, { prompt: 'fix the queue tests', answer: 'Done: the tests pass.' })
+  await speech
+  expect(w.prompts).toHaveLength(1)
+  expect(w.spoken[1]!.env).toMatchObject({ NARRATOR_TEXT: 'He añadido el narrador y los tests pasan.', NARRATOR_LANG: 'es' })
 })
 
 test("a subagent's turn and an interrupted turn are not narrated", async ($, on) => {

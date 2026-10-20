@@ -49,11 +49,27 @@ const PREVIEW = 'Hello! This is a voice preview for Narrator.'
 // The tool inputs that say best what a call did, in order of preference.
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
-const NARRATOR = `You are the voice of Claude Code, a coding assistant. After each of its turns you tell the user, out loud, what Claude just did, speaking as Claude in the first person.
+
+/** The English name of a language code, or undefined where the runtime's language data does not know it. */
+function languageName (code: string) {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }).of(code)
+  } catch {
+    return undefined
+  }
+}
+
+/** The language the narrator is told to speak: the one set, else the one the user wrote in. */
+function spoken (language: string) {
+  if (!language) return "Speak the language the user wrote the request in; if that is unclear, the language of Claude's final message."
+  return `Always speak ${languageName(language) ?? language} (${language}), whatever language the request or Claude's final message is in.`
+}
+
+const NARRATOR = (language: string) => `You are the voice of Claude Code, a coding assistant. After each of its turns you tell the user, out loud, what Claude just did, speaking as Claude in the first person.
 
 You get the user's request, the actions Claude took and Claude's final message. Say what a colleague would say in passing: what was done and how it turned out, plus anything the user has to do or decide now. Leave out how it was done. If Claude only answered a question, give the gist of the answer.
 
-Speak the language the user wrote the request in; if that is unclear, the language of Claude's final message.
+${spoken(language)}
 
 Rules:
 - A speech synthesizer reads it aloud: plain sentences only. No markdown, lists, emojis or code, and no file paths, URLs, hashes or version strings read out character by character: name files and commands the way a person says them ("the register file", "the tests").
@@ -69,7 +85,7 @@ const sweepStep = atom({ plugin: 'narrator', key: 'sweepStep' } as const, 0)
 /** An answer this short is read out as it is: no model call to write a narration of it. */
 const SHORT_ANSWER = 200
 
-let settings = { voice: '', model: 'haiku', speed: SPEED, shortAnswer: SHORT_ANSWER }
+let settings = { voice: '', model: 'haiku', speed: SPEED, shortAnswer: SHORT_ANSWER, language: '' }
 // The main loop's turn so far: the prompt that started it and each tool call it made.
 let request = ''
 let actions: string[] = []
@@ -84,6 +100,16 @@ let hintWidth = 0
 let spokenLanguage = ''
 // The sweep across the switch, running while it speaks.
 let sweep: Timer | undefined
+
+/**
+ * A language setting as its ISO 639 code (`es-MX` is `es`), checked against the language data the
+ * runtime ships (`Intl.DisplayNames`), so a typo or any other text is not a language: empty, automatic.
+ */
+export function languageOf (value: unknown) {
+  const code = String(value ?? '').trim()
+  const language = LANGUAGE_CODE.test(code) ? code.split(/[-_]/)[0]!.toLowerCase() : ''
+  return language && languageName(language) ? language : ''
+}
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -375,17 +401,20 @@ async function narrate ($: EngineInterface, answer: string) {
   current = narration
   try {
     // A short answer already says it: read it out, with no model call to retell it, once its language
-    // is known (macOS tells it from the text).
+    // is known (macOS tells it from the text). With a language set, only when its words or the request
+    // tell it is in that language: any other, the model says in it.
     const direct = plain(answer)
-    const directLanguage = guessLanguage(answer) || guessLanguage(`${request}\n${answer}`) || spokenLanguage
-    if (direct !== '' && direct.length <= settings.shortAnswer && (directLanguage || (await platformOf($)) === 'macos')) {
+    const ownLanguage = guessLanguage(answer) || guessLanguage(`${request}\n${answer}`)
+    const directLanguage = ownLanguage || spokenLanguage
+    const isReadable = settings.language ? ownLanguage === settings.language : directLanguage !== '' || (await platformOf($)) === 'macos'
+    if (direct !== '' && direct.length <= settings.shortAnswer && isReadable) {
       spokenLanguage = directLanguage
       await speak($, narration, direct, directLanguage)
       return
     }
     const reply = await $.model.complete(
       // A short summary: no deep thinking, so it is said right after the turn.
-      { model: settings.model, system: NARRATOR, prompt: brief(answer), maxTokens: 150, effort: 'low', timeoutMs: 30_000 },
+      { model: settings.model, system: NARRATOR(settings.language), prompt: brief(answer), maxTokens: 150, effort: 'low', timeoutMs: 30_000 },
       { signal: narration.abort.signal }
     ).catch(() => undefined)
     if (!narration.isActive) return
@@ -473,10 +502,13 @@ export const register: Register = (on, options) => {
     voice: String(options.voice ?? '').trim(),
     model: String(options.model || 'haiku'),
     speed: speed > 0 ? speed : SPEED,
-    shortAnswer: shortAnswer >= 0 ? shortAnswer : SHORT_ANSWER
+    shortAnswer: shortAnswer >= 0 ? shortAnswer : SHORT_ANSWER,
+    language: languageOf(options.language)
   }
 
   on('session.start', async ($, e, next) => {
+    const asked = String(options.language ?? '').trim()
+    if (asked && !settings.language) $.ui.log(`narrator: "${cut(asked, 40)}" is not a language code (es, en, pt...): speaking the language you write in`, { to: 'debug' })
     await $.command.register({
       name: 'narrator',
       description: 'Claude tells you out loud what it did after each turn · no argument: switch on or off',
@@ -546,7 +578,9 @@ export const register: Register = (on, options) => {
 
   // The switch, last in the footer's right end: a click turns the narrator on or off, and while it
   // speaks, skips to the next narration in the line or stops it.
-  // Where the row is short it gives up "on" or "off", then "narrator" (or "narrating"): its sign and color still tell.
+  // A language that is set shows after the words (`⏵ narrator on · ES`); automatic shows none.
+  // Where the row is short it gives up "on" or "off", then the language, then "narrator" (or
+  // "narrating"): its sign and color still tell.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const isEnabled = await read($, enabled)
     const speaking = await read($, speech)
@@ -559,7 +593,9 @@ export const register: Register = (on, options) => {
     const room = roomOf(e) -
       (hasBeneath ? widthOfNode(beneath, e.props.modes) + SEPARATOR.length : 0) -
       (holdsPlugin(beneath) ? 0 : AROUND)
-    const label = words.map(word => `${icon} ${word}`).find(text => widthOf(text) <= room) ?? icon
+    const tag = settings.language ? `${SEPARATOR}${settings.language.toUpperCase()}` : ''
+    const labels = [...words.map(word => `${icon} ${word}${tag}`), `${icon} ${words.at(-1)}`]
+    const label = labels.find(text => widthOf(text) <= room) ?? icon
     const [before, under, after] = speaking ? sweptAt(label, step) : [label, '', '']
 
     return (

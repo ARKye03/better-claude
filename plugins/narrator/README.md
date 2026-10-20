@@ -11,9 +11,11 @@ The switch reads like the footer's mode labels (`⏵⏵ auto mode on`), in quiet
 
 While it speaks the switch reads `⏹︎ narrating` in blue, a lighter blue sweeping across it from left to right, and a click stops it, leaving the narrator on. When narrations of other windows wait their turn behind it, it reads `⏭︎ narrating`, and a click skips to the next one.
 
-Where the footer is short the switch gives up `on` or `off`, then `narrator` (or `narrating`), and stays a `⏵`, `⏸︎`, `⏹︎` or `⏭︎` in its color, so the row never breaks in two. Beside [Sub Meter](../sub-meter), the meter shrinks first.
+With a language set (see Settings) the switch shows it after its words: `⏵ narrator on · ES`, `⏸︎ narrator off · ES`, `⏹︎ narrating · ES`.
 
-When a turn ends, Haiku (at low effort, so it is quick) reads your request, the tools Claude used and its final message, and writes one or two short spoken sentences in first person ("I added the narrator and the tests pass"), in the language you wrote in. Haiku also names that language, and the mod picks the best voice installed for it; where there is none, the English one. A short answer already says it, so it is read out as it is, with no Haiku call: a path by its file's name (`hooks/register.tsx`: "register") and no commit hashes, in the language its words or your request tell, else the one the last narration was in (on Windows and Linux, Haiku narrates it while neither tells; macOS tells the language from the text).
+Where the footer is short the switch gives up `on` or `off`, then the language, then `narrator` (or `narrating`), and stays a `⏵`, `⏸︎`, `⏹︎` or `⏭︎` in its color, so the row never breaks in two. Beside [Sub Meter](../sub-meter), the meter shrinks first.
+
+When a turn ends, Haiku (at low effort, so it is quick) reads your request, the tools Claude used and its final message, and writes one or two short spoken sentences in first person ("I added the narrator and the tests pass"), in the language you wrote in, or the one you set (see Settings). Haiku also names that language, and the mod picks the best voice installed for it; where there is none, the English one. A short answer already says it, so it is read out as it is, with no Haiku call: a path by its file's name (`hooks/register.tsx`: "register") and no commit hashes, in the language its words or your request tell, else the one the last narration was in (on Windows and Linux, Haiku narrates it while neither tells; macOS tells the language from the text). With a language set, a short answer is read as it is only when its words or your request tell it is in that language; any other, Haiku says in it.
 
 | System | Voice |
 | --- | --- |
@@ -54,6 +56,7 @@ A new prompt cuts the narration short. It stays on in your next sessions until y
 In `/config`:
 
 - **Voice**: a voice's name (`Mónica`, `Microsoft Helena`, or `Eddy (es-MX)` for one language's) to always speak with. Empty: the best one for the language. `/narrator voices` lists them and `/narrator test` tries one.
+- **Language**: a language code (`es`, `en`, `pt`) to always narrate in, whatever language you write in; a region is dropped (`es-MX`: `es`, the voice's region still comes from the system). It is checked against the runtime's language list: an unknown value (`zz`, a typo, any other text) is ignored, and the narrator goes back to automatic. The switch then shows it (`⏵ narrator on · ES`). Empty: the language you write in, and the switch shows none.
 - **Speed**: how fast it speaks, as a multiple of the voice's normal pace, from `0.5` to `2`: `1.3` by default, a little quicker; `1` is the voice's own. The engine's voice, the last resort, keeps its own pace.
 - **Read short answers as they are**: an answer up to this many characters (200 by default) is read out as it is, with no Haiku call to retell it. `0`: Haiku narrates every answer.
 - **Model that writes the narration**: `haiku` by default.
