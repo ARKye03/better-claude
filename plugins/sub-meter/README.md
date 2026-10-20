@@ -25,7 +25,7 @@ One hooks module ([`hooks/register.tsx`](hooks/register.tsx)):
 
 - `session.measure` hands it the rate-limit windows after each response (`five_hour`, `seven_day`); `$.session.usage()` gives the first reading at start.
 - The last reading is kept in `$.store`, so a new session shows it before its first response.
-- A `ui.render` hook on `SessionMode` wraps what the engine draws there (its mode labels) and adds the meter after it; `$.clock.every` switches the window.
+- A `ui.render` hook on `SessionMode` draws the meter and, after it, what is beneath (the engine's mode labels, another plugin's switch such as Narrator's, which so stays last); `$.clock.every` switches the window.
 - A `ui.render` hook on `PromptHint` rewrites the hint line without `(shift+tab to cycle)`; the engine still draws it, and the mode label before it.
 
 ## Development
