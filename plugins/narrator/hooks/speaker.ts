@@ -6,7 +6,8 @@
 // ready, its place in the line every window's narrations wait in (see QUEUE). Each writes
 // `no voice <name>` when it has no voice by that name, `voice <name>` once it speaks, or a line
 // starting `error`, then a `.` every tenth of a second while it speaks, so the one reading it is
-// woken to end it; while it waits in the line, a `.` every 0.3 s, and `skipped` if the line drops it.
+// woken to end it, and `waiting <n>` each time the number of narrations waiting behind it in the
+// line changes; while it waits in the line, a `.` every 0.3 s, and `skipped` if the line drops it.
 
 /**
  * macOS: JavaScript for Automation, run by `osascript`, with AVSpeechSynthesizer, which reaches the
@@ -167,7 +168,7 @@ function Speak-OneCore {
   Say "voice $name"
   $player.Play()
   $end = (Get-Date).AddSeconds($seconds + 0.3)
-  while ((Get-Date) -lt $end) { Start-Sleep -Milliseconds 100; Say '.' }
+  while ((Get-Date) -lt $end) { Start-Sleep -Milliseconds 100; Tick }
 }
 
 function Speak-Sapi {
@@ -181,7 +182,7 @@ function Speak-Sapi {
   $script:isSpeaking = $true
   Say "voice $($synth.Voice.Name)"
   $spoken = $synth.SpeakAsync($text)
-  while (-not $spoken.IsCompleted) { Start-Sleep -Milliseconds 100; Say '.' }
+  while (-not $spoken.IsCompleted) { Start-Sleep -Milliseconds 100; Tick }
 }
 
 # The line every window waits in, as QUEUE's on macOS and Linux: a ticket (NARRATOR_TICKET, then
@@ -189,10 +190,12 @@ function Speak-Sapi {
 # one that speaks, which Windows lets go of when its process ends. False: dropped, not to be said.
 $script:ticket = $null
 $script:seat = $null
+$script:line = $null
 function Enter-Line {
   if ("$env:NARRATOR_TICKET" -notmatch '^\d+$') { return $true }
   $dir = Join-Path ([IO.Path]::GetTempPath()) 'claude-narrator-queue'
   $mine = "$($env:NARRATOR_TICKET)-$PID"
+  $script:line = $dir
   try {
     $null = New-Item -ItemType Directory -Force -Path $dir
     $script:ticket = Join-Path $dir $mine
@@ -225,6 +228,26 @@ function Enter-Line {
 function Exit-Line {
   if ($script:seat) { try { $script:seat.ReleaseMutex() } catch {} }
   if ($script:ticket) { Remove-Item -LiteralPath $script:ticket -Force -ErrorAction SilentlyContinue }
+}
+
+# A dot while it speaks, every tenth of a second; every third, how many narrations wait their turn,
+# each time that changes.
+$script:ticks = 0
+$script:told = 0
+function Tick {
+  Say '.'
+  $script:ticks++
+  if (-not $script:ticket -or $script:ticks % 3) { return }
+  $mine = Split-Path -Leaf $script:ticket
+  $waiting = 0
+  try {
+    foreach ($file in @(Get-ChildItem -LiteralPath $script:line -File)) {
+      if ($file.Name -eq $mine -or $file.Name -notmatch '^\d+-(\d+)$') { continue }
+      $owner = Get-Process -Id ([int]$Matches[1]) -ErrorAction SilentlyContinue
+      try { if ($owner -and $owner.StartTime -le $file.CreationTime) { $waiting++ } } catch {}
+    }
+  } catch { return }
+  if ($waiting -ne $script:told) { Say "waiting $waiting"; $script:told = $waiting }
 }
 
 if (-not (Enter-Line)) { Say 'skipped'; exit 0 }
@@ -313,7 +336,8 @@ export const powershell = (script: string, program = 'powershell') => [program, 
  * a ticket came in late. A ticket whose process is gone, or older than a quarter of an hour (its id
  * may have been reused), is thrown away, so a window that was closed never holds the line; the shell
  * takes its ticket and the seat away as the speech ends, or as it is ended. A narration that would
- * wait behind three others, or for two minutes, is not said: it prints `skipped`.
+ * wait behind three others, or for two minutes, is not said: it prints `skipped`. While its speaker
+ * speaks it prints `waiting <n>` each time the number of narrations waiting their turn changes.
  */
 export const QUEUE = String.raw`
 case $NARRATOR_TICKET in '' | *[!0-9]*) exec "$@" ;; esac
@@ -364,6 +388,23 @@ done
 cd "$here" 2>/dev/null
 "$@" &
 pid=$!
+# While it speaks, how many narrations wait their turn, each time that changes.
+cd "$dir" 2>/dev/null || { wait "$pid"; pid=; leave; }
+told=0
+while kill -0 "$pid" 2>/dev/null; do
+  now=$(date +%s)
+  waiting=0
+  for f in *-*; do
+    case $f in "$mine" | *[!0-9-]* | -* | *- | *-*-*) continue ;; esac
+    parts "$f"
+    if kill -0 "$owner" 2>/dev/null && [ $((now - born / 1000)) -le 900 ]; then waiting=$((waiting + 1)); fi
+  done
+  if [ "$waiting" -ne "$told" ]; then
+    echo "waiting $waiting" 2>/dev/null || leave
+    told=$waiting
+  fi
+  sleep 0.3
+done
 wait "$pid"
 pid=
 leave
