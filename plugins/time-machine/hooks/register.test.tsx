@@ -22,7 +22,7 @@ function world (on: On, { inRepo = true } = {}) {
   // git fail, `ignored` are ignored files on disk a jump would write over, and `gate` holds a
   // tool call open until the test lets it go
   const disk = {
-    tree: 'T0', head: 'h1', edits: 0, commits: 0, user: 'Doc Brown', broken: false, ignored: [] as string[],
+    tree: 'T0', head: 'h1', edits: 0, commits: 0, broken: false, ignored: [] as string[],
     diff: [['M', 'src/a.ts', 3, 1]] as [string, string, number, number][],
     gate: null as Promise<void> | null,
     // What .git holds besides the repository's own files: our indexes, by name and age
@@ -88,7 +88,6 @@ function world (on: On, { inRepo = true } = {}) {
     if (verb === 'check-ignore') return disk.ignored.length ? ok(disk.ignored.map(path => `${path}\0`).join('')) : { value: { ...ok().value, exitCode: 1 } }
     if (verb === 'ls-files' && rest.includes('--others')) return ok(disk.ignored.map(path => `${path}\0`).join(''))
     if (verb === 'rev-parse') return ok(rest.includes('--show-toplevel') ? '/repo\n' : rest.includes('--absolute-git-dir') ? '/repo/.git\n' : `${disk.head}\n`)
-    if (verb === 'config') return ok(`${disk.user}\n`)
     if (verb === 'write-tree') return ok(`${disk.tree}\n`)
     if (verb === 'commit-tree') return ok(`c${++disk.commits}\n`)
     if (verb === 'diff' && rest.includes('--name-only')) {
@@ -189,7 +188,7 @@ test('going to a state moves the cursor and the files, and adds no row', async (
   await turnOf($, 'second')
   expect(saved(w.store).states.map(s => s.id)).toEqual([1, 2, 3])
 
-  expect((await timeline($, '1')).text).toContain('⚡ 88 mph · At #1 · start of the session')
+  expect((await timeline($, '1')).text).toContain('At #1 · start of the session')
   expect(w.disk.tree).toBe('T0')
   expect((await timeline($, '3')).text).toContain('At #3 · second')
   expect(w.disk.tree).toBe('E2')
@@ -208,7 +207,7 @@ test('undo goes to the parent and redo comes back, even after a branch', async (
   expect(saved(w.store).cursor).toBe(2)
   await timeline($, 'undo')
   expect(saved(w.store).cursor).toBe(1)
-  expect((await timeline($, 'undo')).text).toContain('Great Scott! #1 is as far back as it goes.')
+  expect((await timeline($, 'undo')).text).toContain('Time Machine: #1 is as far back as it goes.')
   await timeline($, 'redo')
   expect(saved(w.store).cursor).toBe(2)
 
@@ -390,37 +389,16 @@ test('a running turn shows at once at the top, fills in its files, and lands as 
 test('the footer says which row is selected, where the files are and where they jumped from', async ($, on) => {
   world(on)
   await startSession($)
+  const ui = await pane($)
+  expect(await ui.find({ type: 'Text', text: 'No snapshots yet. Each turn that changes files lands here.' })).toBeDefined()
   await turnOf($, 'first')
   await turnOf($, 'second')
   await timeline($, '1')
-  const ui = await pane($)
   for (const [label, value] of [['selected', '#1'], ['current', '#1'], ['jumped from', '#3']]) {
     expect(await ui.find({ type: 'Text', text: label })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: value })).toBeDefined()
   }
-  expect(await ui.find({ type: 'Text', text: "Where we're going, we don't need branches." })).toBeUndefined()   // the jump's note is up
-  // git's user.name is Doc Brown here
-  expect(await ui.find({ type: 'Text', text: "· Doc's DeLorean" })).toBeDefined()
-})
-
-test('the DeLorean is whoever git says is at the wheel', async ($, on) => {
-  const w = world(on)
-  w.disk.user = 'Marty McFly'
-  await startSession($)
-  await turnOf($, 'first')
-  w.disk.tree = 'MINE'
-  expect((await timeline($, '1')).text).toContain('Your changes are safe, Marty: kept as #3.')
-  expect(await (await pane($)).find({ type: 'Text', text: "· Marty's DeLorean" })).toBeDefined()
-})
-
-test('when git knows no name, the DeLorean is yours', async ($, on) => {
-  const w = world(on)
-  w.disk.user = ''
-  await startSession($)
-  await turnOf($, 'first')
-  w.disk.tree = 'MINE'
-  expect((await timeline($, '1')).text).toContain('Your changes are safe: kept as #3.')
-  expect(await (await pane($)).find({ type: 'Text', text: '· Your DeLorean' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'No snapshots yet. Each turn that changes files lands here.' })).toBeUndefined()
 })
 
 test('the footer shows the whole prompt of the chosen row, cut to its two lines', async ($, on) => {
@@ -581,9 +559,9 @@ test('the note of a jump leaves the header after six seconds', async ($, on) => 
   await turnOf($, 'first')
   await timeline($, '1')
   const ui = await pane($)
-  expect(await ui.find({ type: 'Text', text: /88 mph/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^At #1/ })).toBeDefined()
   await w.clock.advance(6000)
-  expect(await ui.find({ type: 'Text', text: /88 mph/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^At #1/ })).toBeUndefined()
 })
 
 test('after undo, the footer previews the chosen row again instead of staying on reading…', async ($, on) => {

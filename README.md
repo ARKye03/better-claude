@@ -10,9 +10,9 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 | **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
 | **Commit** | `/commit` asks commit + push, commit only or a new branch, then splits your changes into Conventional Commits, on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
 | **Narrator** | Click `⏸︎ narrator off` in the footer, or `/narrator`, and Claude tells you out loud what it did after each turn, in your language, with the best free voice your system has. | [`plugins/narrator/`](plugins/narrator/README.md) |
+| **Time Machine** | Every turn that changes files is a git snapshot: `/timeline` puts the files back as before any turn, Bash changes included. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
 
 <!-- Hidden until they are on the web:
-| **Time Machine** | Every turn that changes files is a git snapshot: `/timeline` puts the files back as before any turn, Bash changes included. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
 | **After** | A prompt queue: `/after <task>` runs it when Claude finishes, without steering it. | [`plugins/after/`](plugins/after/README.md) |
 | **Use Haiku** | Start a prompt with `_` and that turn runs on Haiku. | [`plugins/use-haiku/`](plugins/use-haiku/README.md) |
 | **Think Hard** | Start a prompt with `+` and that turn thinks at max effort. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
@@ -27,10 +27,10 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 /plugin install sub-meter@better-claude
 /plugin install commit@better-claude
 /plugin install narrator@better-claude
+/plugin install time-machine@better-claude
 ```
 
 <!-- Hidden until they are on the web:
-/plugin install time-machine@better-claude
 /plugin install after@better-claude
 /plugin install use-haiku@better-claude
 /plugin install think-hard@better-claude

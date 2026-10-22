@@ -68,7 +68,7 @@
       "name": "time-machine",
       "source": "./plugins/time-machine",
       "description": "Every turn that changes files is a git snapshot: /timeline puts the working tree back as before any turn, Bash changes included. Undoable.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "productivity"
     }
   ]

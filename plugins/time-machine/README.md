@@ -5,7 +5,7 @@ A Claude Code mod: your files get a history of states, like an editor's undo tre
 ```text
 ❯ /timeline
 
-  ⏪ Time Machine · Marty's DeLorean                               5 states
+  ⏪ Time Machine                                                  5 states
 
   ⠹  add rate limiting to the API                                      12s
   │  8 files +212 −40 · api/ ×5 · middleware/ ×2 · +1
@@ -25,7 +25,7 @@ A Claude Code mod: your files get a history of states, like an editor's undo tre
 ```
 
 - **One row per state, not per action.** Going to a state moves the cursor `◉` and the files; it adds no row.
-- **You always see where the files are**: `◉` on their row and `current` in the footer, or a yellow row when you changed files by hand since.
+- **You always see where the files are**: `◉` on their row and in the footer (**selected** is the state Enter goes to, **current** the one the files are in, **jumped from** the one they left on the last jump), or a yellow row when you changed files by hand since.
 - **Enter goes to a state; choosing a row shows first which files would change.** `u`/`r` undo and redo: undo goes to the state the current one came from, redo to the newest state that came from it.
 - **Branches are kept.** Go back and let Claude take another way: the old way stays, dimmed (`○ … undone`), one Enter away.
 - **Your changes are never lost.** Files changed by hand since the cursor are saved as a state (`your changes, kept before a jump`) before any jump, so a jump needs no confirmation.
@@ -35,10 +35,6 @@ A Claude Code mod: your files get a history of states, like an editor's undo tre
 - **The footer stays put**: docked beside the transcript it is pinned to the bottom, with the whole prompt of the chosen row (two lines), what Enter would do and the keys. Each part has a fixed height, so moving between rows only changes what is written; with more states than fit, the list is a window around the chosen row (`↑ 3 newer`, `↓ 2 older`).
 - **Nothing moves under the pointer**: the running row is as tall as any other.
 - From the prompt: `/timeline <n>`, `/timeline undo`, `/timeline redo`.
-
-## The DeLorean
-
-The DeLorean is yours: the header names the first name git knows you by (`Marty's DeLorean`), or `Your DeLorean`. Under the list, where things stand in the colors of its time circuits: **selected** (red) is the state Enter goes to, **current** (green) the one the files are in, **jumped from** (amber) the one they left on the last jump, so the way back is always in sight. A jump runs at ⚡ 88 mph, the oldest state is as far back as Great Scott allows, and where we're going, we don't need branches.
 
 ## How it differs from Claude Code's own checkpoints
 

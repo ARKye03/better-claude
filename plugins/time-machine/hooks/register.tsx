@@ -71,8 +71,6 @@ let liveQueued = false
 let ringAt: string | undefined
 // The rows a docked pane shows, newest first, by surface: each surface draws a window of its own
 const windows = new Map<string, number[]>()
-// Whose DeLorean it is: the first name in git's user.name, empty when git has none
-let driver = ''
 // The tree Claude last left the files in, and whether a jump has moved them since
 // Both are kept with the session's states, so a jump made before a restart still reaches Claude
 let modelTree: string | null = null
@@ -261,7 +259,7 @@ async function goTo ($: Engine, id: number, read0?: { tree: string; head: string
   let kept = ''
   if (await read($, DIRTY)) {
     const saved = await addState($, now, 'saved', 'your changes, kept before a jump', await current($))
-    kept = driver ? ` Your changes are safe, ${driver}: kept as #${saved.id}.` : ` Your changes are safe: kept as #${saved.id}.`
+    kept = ` Your changes are safe: kept as #${saved.id}.`
     await update($, DEPARTED, () => saved.id)
   } else {
     await update($, DEPARTED, () => leaving)
@@ -282,7 +280,7 @@ async function goTo ($: Engine, id: number, read0?: { tree: string; head: string
   const headMoved = target.head !== undefined && target.head !== now.head
     ? ` HEAD has moved since #${id} (a commit or a checkout): the files went back, HEAD and the branch did not; git status shows the difference.`
     : ''
-  const text = `⚡ 88 mph · At #${id} · ${target.label} (${summary(moved)} changed).${kept}${headMoved}`
+  const text = `At #${id} · ${target.label} (${summary(moved)} changed).${kept}${headMoved}`
   await update($, NOTE, () => text)
   $.clock.after(NOTE_MS, () => { void update($, NOTE, shown => shown === text ? null : shown) })
   return text
@@ -295,7 +293,7 @@ async function undo ($: Engine): Promise<string> {
   const here = await current($)
   if (!here) return 'Time Machine: nothing to undo yet.'
   if (await read($, DIRTY)) return goTo($, here.id, now)
-  if (here.parent === null) return `Great Scott! #${here.id} is as far back as it goes.`
+  if (here.parent === null) return `Time Machine: #${here.id} is as far back as it goes.`
   return goTo($, here.parent, now)
 }
 
@@ -434,10 +432,6 @@ export const register: Register = (on, options) => {
     modelTree = typeof saved?.modelTree === 'string' ? saved.modelTree : null
     jumped = saved?.jumped === true
     repo = await locate(runner($), await $.session.cwd(), sessionId)
-    if (repo) {
-      const name = await $.process.run(['git', 'config', 'user.name'], { cwd: repo.top })
-      driver = name.stdout.trim().split(/\s+/)[0] ?? ''
-    }
     await loadStates($, saved)
     await update($, DIRTY, () => false)
     await update($, DEPARTED, () => null)
@@ -634,8 +628,7 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
       </Box>
     )
   }
-  // Where things stand, in the colors of the DeLorean's time circuits: a label, the state,
-  // and how long ago it was
+  // Where things stand: a label, the state, and how long ago it was
   const where = (key: string, label: string, color: string, id: number | null, { instead, when = true }: { instead?: string; when?: boolean } = {}) => {
     const state = states.find(one => one.id === id)
     return (
@@ -661,7 +654,6 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
       <Box key="head" flexDirection="row" justifyContent="space-between" gap={2} height={1} overflow="hidden">
         <Box flexDirection="row" gap={1} flexShrink={0}>
           <Text bold color="claude">⏪ Time Machine</Text>
-          <Text dimColor>· {driver ? `${driver}'s` : 'Your'} DeLorean</Text>
         </Box>
         {note
           ? <Text color="success" wrap="truncate-end">{note}</Text>
@@ -669,7 +661,7 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
       </Box>
 
       <Box key="list" flexDirection="column" marginTop={1} flexGrow={1} overflow="hidden">
-        {states.length === 0 && !live && <Text key="empty" dimColor italic>Where we're going, we don't need branches. Each turn that changes files lands here.</Text>}
+        {states.length === 0 && !live && <Text key="empty" dimColor italic>No snapshots yet. Each turn that changes files lands here.</Text>}
         {/* The turn under way: as tall as any row, so it never shifts them when it lands */}
         {live && rail('live', SPIN[live.frame % SPIN.length]!, (
           <Box flexGrow={1} flexDirection="row" justifyContent="space-between" gap={2}>
@@ -726,7 +718,7 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
         <Box key="footer" flexDirection="column" flexShrink={0}>
           <Text dimColor>{'─'.repeat(columns)}</Text>
           <Box key="where" flexDirection="row" gap={3} height={1} overflow="hidden">
-            {where('selected', 'selected', 'error', selected ?? cursor)}
+            {where('selected', 'selected', 'claude', selected ?? cursor)}
             {where('current', 'current', 'success', dirty ? null : cursor, { instead: dirty ? 'unsaved' : undefined })}
             {where('from', 'jumped from', 'warning', departed, { when: false })}
           </Box>
