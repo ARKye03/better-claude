@@ -5,7 +5,7 @@
     "url": "https://github.com/midudev"
   },
   "metadata": {
-    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter and Sub Meter, tokens and subscription usage at a glance; Image Preview, hover a pasted image to see it; Time Machine, a git snapshot of every turn to go back to; Commit, Conventional Commits and a push on Haiku; Narrator, Claude tells you out loud what it did"
+    "description": "Claude Code plugins and mods by midudev: After, a prompt queue; Use Haiku and Think Hard, prompt prefixes for one turn; Token Meter, Sub Meter and Context Meter, tokens, subscription and context window usage at a glance; Image Preview, hover a pasted image to see it; Time Machine, a git snapshot of every turn to go back to; Commit, Conventional Commits and a push on Haiku; Narrator, Claude tells you out loud what it did"
   },
   "plugins": [
     {
@@ -41,6 +41,13 @@
       "source": "./plugins/sub-meter",
       "description": "Subscription usage at the bottom right: the 5-hour and weekly windows, taking turns, side by side or fixed on one of them.",
       "version": "0.4.1",
+      "category": "productivity"
+    },
+    {
+      "name": "context-meter",
+      "source": "./plugins/context-meter",
+      "description": "The session's context window fill right above the prompt: gray, then yellow when it is time to /compact, red when a new session is better.",
+      "version": "0.1.0",
       "category": "productivity"
     },
     {
