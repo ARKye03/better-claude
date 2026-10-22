@@ -578,6 +578,7 @@
         <ul class="picks">
           <li><button type="button" class="pick" data-plugin="image-preview" aria-pressed="true">Image Preview</button></li>
           <li><button type="button" class="pick" data-plugin="sub-meter" aria-pressed="true">Sub Meter</button></li>
+          <li><button type="button" class="pick" data-plugin="context-meter" aria-pressed="true">Context Meter</button></li>
           <li><button type="button" class="pick" data-plugin="commit" aria-pressed="true">Commit</button></li>
           <li><button type="button" class="pick" data-plugin="narrator" aria-pressed="true">Narrator</button></li>
           <li><button type="button" class="pick" data-plugin="time-machine" aria-pressed="true">Time Machine</button></li>
@@ -614,6 +615,18 @@
           <p>Your subscription usage, always at the bottom right: the 5-hour and the weekly windows take turns as a bar, with the time until each resets.</p>
           <div class="demo" role="group" aria-label="Demo">
             <p class="line footer-line"><span class="mode">⏵⏵ auto mode on</span><span id="sub-meter"><span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">· 2h 10m</span></span></p>
+          </div>
+        </div>
+      </li>
+
+      <li class="plugin">
+        <div class="meta"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="#5e5e5e" d="M2 1h12v1h-12zM1 2h1v12h-1zM14 2h1v12h-1zM2 14h12v1h-12z"/><path fill="#262626" d="M3 3h10v2h-10zM3 6h10v2h-10zM3 9h10v2h-10zM3 12h10v1h-10z"/><g class="strip" style="--n: 4; --d: 0.96s"><path fill="#9b9b9b" d="M3 12h10v1h-10zM19 9h10v2h-10zM19 12h10v1h-10z"/><path fill="#e5c07b" d="M35 6h10v2h-10zM35 9h10v2h-10zM35 12h10v1h-10z"/><path fill="#e06c75" d="M51 3h10v2h-10zM51 6h10v2h-10zM51 9h10v2h-10zM51 12h10v1h-10z"/></g></svg><h2>Context Meter</h2><ul class="links"><li><a data-panel="source" href="https://github.com/midudev/better-claude/tree/main/plugins/context-meter"><svg aria-hidden="true"><use href="#i-source"/></svg><span>source</span></a></li><li><a data-panel="docs" href="https://github.com/midudev/better-claude/blob/main/plugins/context-meter/README.md"><svg aria-hidden="true"><use href="#i-docs"/></svg><span>docs</span></a></li><li><button type="button" data-install="context-meter"><svg aria-hidden="true"><use class="arrow" href="#i-arrow"/><use class="tray" href="#i-tray"/><use class="check" href="#i-check"/></svg><span>install</span></button></li></ul></div>
+        <div class="body">
+          <p>How full the session's context window is, right above the prompt at its right end: dim while there is room, yellow from 50% when it is a good moment for <code class="accent">/compact</code>, and red from 75% when a new session is better. After a resume, compaction or rewind it estimates the window (<code class="accent">context ~16%</code>) until the next response.</p>
+          <div class="demo" role="group" aria-label="Demo">
+            <p class="line footer-line"><span></span><span id="context-meter" class="warn">context 58%</span></p>
+            <hr class="tm-rule">
+            <p class="line"><span class="p">❯ </span>review the order intake module</p>
           </div>
         </div>
       </li>
@@ -1015,6 +1028,21 @@
         const filled = Math.round(percent / 10)
         meter.innerHTML = `<span class="dim">${label} </span><span class="accent">${'━'.repeat(filled)}</span><span class="dim">${'─'.repeat(10 - filled)}</span> ${percent}% <span class="dim">· ${resets}</span>`
       }, 4000)
+
+      // Context Meter: steps through dim, yellow (/compact) and red (new session) fills above the prompt.
+      const ctxMeter = $('#context-meter')
+      const CTX_STATES = [
+        { text: 'context 58%', cls: 'warn' },
+        { text: 'context 82%', cls: 'err' },
+        { text: 'context ~16%', cls: 'dim' },
+        { text: 'context 34%', cls: 'dim' }
+      ]
+      let ctxIndex = 0
+      setInterval(() => {
+        ctxIndex = (ctxIndex + 1) % CTX_STATES.length
+        ctxMeter.textContent = CTX_STATES[ctxIndex].text
+        ctxMeter.className = CTX_STATES[ctxIndex].cls
+      }, 3500)
 
       // Image Preview: the picture opens by the pointer while it is on the chip, above it and to its
       // right, under it or to its left where there is no room, never over it, as the mod's window does.
