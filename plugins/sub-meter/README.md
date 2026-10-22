@@ -39,8 +39,8 @@ One hooks module ([`hooks/register.tsx`](hooks/register.tsx)):
 ## Development
 
 ```bash
-claude plugin validate ./sub-meter   # from the repository root
-claude plugin test ./sub-meter       # runs hooks/register.test.tsx against the engine
+claude plugin validate ./plugins/sub-meter   # from the repository root
+claude plugin test ./plugins/sub-meter       # runs hooks/register.test.tsx against the engine
 ```
 
 MIT © Miguel Ángel Durán (midudev)
