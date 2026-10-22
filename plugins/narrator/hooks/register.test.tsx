@@ -22,6 +22,7 @@ type World = {
   /** How many narrations of other windows the speaker says wait their turn behind it. */
   waiting?: number
   hasEngineVoice?: boolean
+  recap?: string
   store?: Record<string, unknown>
 }
 
@@ -29,7 +30,7 @@ type World = {
  * Everything beneath the mod: the session, the store, the system and its synthesizers, the model
  * that writes the narration, and the engine's own `$.audio.speak`.
  */
-function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', table = '', processErrors = [], unknownVoices = [], speaker = 'speaks', waiting = 0, hasEngineVoice = true, store = {} }: World = {}) {
+function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido el narrador y los tests pasan.', tools = '', voices = '', table = '', processErrors = [], unknownVoices = [], speaker = 'speaks', waiting = 0, hasEngineVoice = true, recap = 'Estamos en `plugins/narrator/hooks/register.tsx` y los tests pasan.', store = {} }: World = {}) {
   const clock = mock.clock(on, { now: 0 })
   const kept: Record<string, unknown> = { ...store }
   on('store.get', ($, e) => ({ value: kept[e.key] }))
@@ -58,7 +59,8 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
     commandHints.push(e.argumentHint ?? '')
     return { value: { command: e.name } }
   })
-  on('command.run', () => ({ text: 'no plugin answered' }))
+  let currentRecap = recap
+  on('command.run', ($, e) => ({ text: e.command === 'recap' ? currentRecap : 'no plugin answered' }))
   // What the engine draws where the mod draws nothing: its own node, as core answers it; with mode labels, a Box the tests find;
   // the hint line as its text.
   on('ui.render', ($, e) => {
@@ -118,7 +120,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
   const settled = async () => {
     for (let i = 0; i < 20; i++) await clock.advance(0)
   }
-  return { clock, store: kept, spoken, said, prompts, systems, efforts, toasts, commandHints, nextSpeech, settled }
+  return { clock, store: kept, spoken, said, prompts, systems, efforts, toasts, commandHints, nextSpeech, settled, setRecap: (text: string) => { currentRecap = text } }
 }
 
 /** An answer too long to be read as it is: the narrator has a model write what to say. */
@@ -135,6 +137,7 @@ const swept = async (ui: Awaited<ReturnType<typeof footer>>) =>
   (await ui.findAll({ type: 'Text' })).find(text => text.props.color === 'permissionShimmer')?.text ?? ''
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
 const narrator = ($: Engine, args = '') => $.command.run({ command: 'narrator', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
+const recap = ($: Engine) => $.command.run({ command: 'recap', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
 const turn = async ($: Engine, { prompt = 'add a narrator', answer = LONG, agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {
   await $.turn.start({ text: prompt, turnId: 't1', agentId })
   await $.tool.call({ tool: 'Write', file_path: '/project/plugins/narrator/hooks/register.ts', content: 'x', agentId } as never)
@@ -761,4 +764,68 @@ test('every speaker waits in the line shared by all windows: a shell before it, 
   expect(w.spoken[0]!.argv.slice(0, 2)).toEqual(['sh', '-c'])
   expect(w.spoken[0]!.argv[3]).toBe('narrator-line')
   expect(w.spoken[0]!.env.NARRATOR_TICKET).toMatch(/^\d{13}$/)
+})
+
+test('/recap is spoken when the narrator is on, and its output is kept', async ($, on) => {
+  const w = world(on, { store: { enabled: true } })
+  await startSession($)
+  const speech = w.nextSpeech()
+  const result = await recap($)
+  await speech
+  expect(result.text).toBe('Estamos en `plugins/narrator/hooks/register.tsx` y los tests pasan.')
+  expect(w.prompts).toHaveLength(0)
+  expect(w.spoken[0]!.env).toMatchObject({
+    NARRATOR_TEXT: 'Estamos en register y los tests pasan.',
+    NARRATOR_LANG: 'es'
+  })
+})
+
+test('/recap in another language is narrated in the configured language, without the previous turn’s tools', { options: { language: 'es' } }, async ($, on) => {
+  const w = world(on, { store: { enabled: true }, recap: 'We are working on the narrator plugin and all tests pass.' })
+  await startSession($)
+  let speech = w.nextSpeech()
+  await turn($)
+  await speech
+  speech = w.nextSpeech()
+  await recap($)
+  await speech
+  expect(w.prompts).toHaveLength(2)
+  expect(w.prompts[1]).toContain('We are working on the narrator plugin')
+  expect(w.prompts[1]).toContain('(no tools: Claude only answered)')
+  expect(w.spoken[1]!.env).toMatchObject({
+    NARRATOR_TEXT: 'He añadido el narrador y los tests pasan.',
+    NARRATOR_LANG: 'es'
+  })
+})
+
+test('/recap is not spoken when the narrator is off, or when /recap wrote no recap', async ($, on) => {
+  const w = world(on, { store: { enabled: false } })
+  await startSession($)
+  await recap($)
+  await w.settled()
+  expect(w.spoken).toHaveLength(0)
+
+  await narrator($, 'on')
+  for (const notice of [
+    'Nothing to recap yet — send a message first.',
+    'Recap cancelled.',
+    "Couldn't generate a recap. Run with --debug for details."
+  ]) {
+    w.setRecap(notice)
+    await recap($)
+    await w.settled()
+    expect(w.spoken).toHaveLength(0)
+  }
+})
+
+test('/recap silences a narration that was still speaking', async ($, on) => {
+  const w = world(on, { store: { enabled: true }, speaker: 'talks on', recap: 'Recap cancelled.' })
+  await startSession($)
+  const speech = w.nextSpeech()
+  await turn($)
+  await speech
+  expect(w.spoken[0]!.isEnded).toBe(false)
+  await recap($)
+  await w.clock.advance(100)
+  expect(w.spoken[0]!.isEnded).toBe(true)
 })

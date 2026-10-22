@@ -49,6 +49,8 @@ const PREVIEW = 'Hello! This is a voice preview for Narrator.'
 // The tool inputs that say best what a call did, in order of preference.
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
+// What /recap prints when it wrote no recap: nothing to say out loud.
+const NO_RECAP = /^(Nothing to recap yet\b|Recap cancelled\.|Couldn't generate a recap\.|\/recap only runs\b|API Error:)/
 
 /** The English name of a language code, or undefined where the runtime's language data does not know it. */
 function languageName (code: string) {
@@ -575,6 +577,16 @@ export const register: Register = (on, options) => {
     if (e.agentId === undefined && e.reason === 'answer' && e.answer.trim() && (await read($, enabled))) void narrate($, e.answer)
     return result
   })
+
+  on('command.run', { command: 'recap' }, async ($, e, next) => {
+    silence()
+    const result = await next(e)
+    if (result.text?.trim() && !NO_RECAP.test(result.text) && (await read($, enabled))) {
+      actions = []
+      void narrate($, result.text)
+    }
+    return result
+  }).catch(($, e, next) => next(e))
 
   // The switch, last in the footer's right end: a click turns the narrator on or off, and while it
   // speaks, skips to the next narration in the line or stops it.
