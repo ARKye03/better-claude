@@ -65,6 +65,7 @@ const sizeOf = (bytes: number) =>
 let graphics: 'none' | 'file' | 'bytes' = 'none'
 let sessionId: string | undefined
 let folder: string | undefined
+let madeFolder: string | undefined
 // Claude Code's temp folder for every session of this user.
 let temp: string | undefined
 type Platform = 'macos' | 'linux' | 'windows' | 'other'
@@ -153,6 +154,7 @@ async function follow ($: Engine) {
   }
   sessionId = id
   folder = undefined
+  madeFolder = undefined
   thumbs.clear()
   failed.clear()
   cells.clear()
@@ -234,8 +236,10 @@ function shrink (tool: Tool, file: string, out: string, format: 'bmp' | 'png', s
 
 /** Makes the mod's cache folder. */
 async function makeFolder ($: Engine, path: string) {
-  if ((await platformOf($)) !== 'windows') return void (await $.process.run(['mkdir', '-p', path]))
-  await $.process.run(powershell('New-Item -ItemType Directory -Force -Path $env:IMAGE_PREVIEW_OUT | Out-Null'), { env: { IMAGE_PREVIEW_OUT: path } })
+  if (madeFolder === path) return
+  if ((await platformOf($)) !== 'windows') await $.process.run(['mkdir', '-p', path])
+  else await $.process.run(powershell('New-Item -ItemType Directory -Force -Path $env:IMAGE_PREVIEW_OUT | Out-Null'), { env: { IMAGE_PREVIEW_OUT: path } })
+  madeFolder = path
 }
 
 async function decode ($: Engine, file: string, out: string): Promise<Pixels> {
@@ -598,15 +602,21 @@ export const register: Register = (on, options) => {
     poll?.cancel()
     poll = undefined
     const result = await next(e)
-    const program = await $.env.get('TERM_PROGRAM')
-    const term = await $.env.get('TERM')
-    const isNative = program === 'ghostty' || term === 'xterm-ghostty' || term === 'xterm-kitty' || (await $.env.get('KITTY_WINDOW_ID')) !== undefined
-    const isForced = /^(1|true|yes|on)$/i.test((await $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES')) ?? '')
+    const [program, term, kittyWindow, forceImages, sshConnection, sshTty] = await Promise.all([
+      $.env.get('TERM_PROGRAM'),
+      $.env.get('TERM'),
+      $.env.get('KITTY_WINDOW_ID'),
+      $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES'),
+      $.env.get('SSH_CONNECTION'),
+      $.env.get('SSH_TTY')
+    ])
+    const isNative = program === 'ghostty' || term === 'xterm-ghostty' || term === 'xterm-kitty' || kittyWindow !== undefined
+    const isForced = /^(1|true|yes|on)$/i.test(forceImages ?? '')
     graphics = isNative ? 'file' : isForced ? 'bytes' : 'none'
     // Where the terminal cannot draw the picture itself, a card opens in a window of its own, by
     // the pointer, on the desktop the session runs on: not over SSH, where that is another machine's.
     windowing = undefined
-    const isRemote = (await $.env.get('SSH_CONNECTION')) !== undefined || (await $.env.get('SSH_TTY')) !== undefined
+    const isRemote = sshConnection !== undefined || sshTty !== undefined
     if (options.window !== false && graphics === 'none' && e.isInteractive && !isRemote) {
       const system = await platformOf($)
       if (system === 'macos' || system === 'windows') windowing = system
@@ -619,9 +629,10 @@ export const register: Register = (on, options) => {
     }
     // A reload starts with an empty cache: read again what is in the box.
     await follow($)
-    draftIds = await read($, draft)
-    hasShown = (await read($, shown)) !== null
-    await track($, (await $.prompt.read()).text)
+    const [initialDraft, initialShown, box] = await Promise.all([read($, draft), read($, shown), $.prompt.read()])
+    draftIds = initialDraft
+    hasShown = initialShown !== null
+    await track($, box.text)
     if (e.isInteractive) {
       // A look that fails (the module unloading under it) waits for the next.
       poll = $.clock.every(POLL_MS, () => {
@@ -683,8 +694,9 @@ export const register: Register = (on, options) => {
     if (e.surface !== 'terminal' || e.viewport?.isFullscreen === false) return next(e)
     note(e)
     if (e.component !== 'UserMessage') return float($, e, await next(e))
-    const all = await read($, pictures)
     const ids = e.props.origin.kind === 'composer' ? idsIn(e.props.text) : []
+    if (ids.length === 0) return float($, e, await next(e))
+    const all = await read($, pictures)
     for (const id of ids) if (!all[id]) void load($, id)
     const drawn = await next(e)
     // The engine lists the images it was sent, in the order pasted: each one stored, read or not.
@@ -726,8 +738,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     // Off fullscreen the terminal reports no pointer: nothing could be hovered.
     if (e.surface !== 'terminal' || e.props.hasSurvey || e.viewport?.isFullscreen === false) return next(e)
-    const ids = await read($, draft)
-    const now = await read($, shown)
+    const [ids, now] = await Promise.all([read($, draft), read($, shown)])
     const inBand = now && now.host === null && now.edge !== 'window' ? now.id : undefined
     if (ids.length === 0 && inBand === undefined) return next(e)
     if (e.viewport) screenRows = e.viewport.rows

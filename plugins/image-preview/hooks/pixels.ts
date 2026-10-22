@@ -128,10 +128,18 @@ const SHAPES: Shape[] = [
 /** One cell's points: gamma-encoded, to choose a shape by; linear, to mix its colors in; and which show. */
 type Points = { encoded: Float64Array; linear: Float64Array; shows: Uint8Array; shown: number }
 
+const SCRATCH_POINTS: Points = {
+  encoded: new Float64Array(POINTS * 3),
+  linear: new Float64Array(POINTS * 3),
+  shows: new Uint8Array(POINTS),
+  shown: 0
+}
+
 /** Averages, in linear light, the pixels under each of the points of the cell at `column`, `row`. */
 function pointsOf ({ width, height, data }: Pixels, columns: number, rows: number, column: number, row: number, points: Points) {
   const across = columns * SIDE
   const down = rows * SIDE
+  const { encoded, linear, shows } = points
   points.shown = 0
   for (let py = 0; py < SIDE; py++) {
     const y0 = Math.floor(((row * SIDE + py) * height) / down)
@@ -144,24 +152,31 @@ function pointsOf ({ width, height, data }: Pixels, columns: number, rows: numbe
       let b = 0
       let alpha = 0
       for (let y = y0; y < y1; y++) {
+        let at = (y * width + x0) * 4
         for (let x = x0; x < x1; x++) {
-          const at = (y * width + x) * 4
           const a = data[at + 3]!
           r += LINEAR[data[at]!]! * a
           g += LINEAR[data[at + 1]!]! * a
           b += LINEAR[data[at + 2]!]! * a
           alpha += a
+          at += 4
         }
       }
       const i = py * SIDE + px
-      const shows = alpha / ((y1 - y0) * (x1 - x0)) >= 128
-      points.shows[i] = shows ? 1 : 0
-      if (!shows) continue
+      const isShown = alpha / ((y1 - y0) * (x1 - x0)) >= 128
+      shows[i] = isShown ? 1 : 0
+      if (!isShown) continue
       points.shown++
-      points.linear[i * 3] = r / alpha
-      points.linear[i * 3 + 1] = g / alpha
-      points.linear[i * 3 + 2] = b / alpha
-      for (let c = 0; c < 3; c++) points.encoded[i * 3 + c] = encode(points.linear[i * 3 + c]!)
+      const out = i * 3
+      const linR = r / alpha
+      const linG = g / alpha
+      const linB = b / alpha
+      linear[out] = linR
+      linear[out + 1] = linG
+      linear[out + 2] = linB
+      encoded[out] = encode(linR)
+      encoded[out + 1] = encode(linG)
+      encoded[out + 2] = encode(linB)
     }
   }
 }
@@ -245,7 +260,7 @@ function colorOf ({ linear, shows }: Points, shape: Shape | undefined, side: num
  */
 export function toCells (pixels: Pixels, columns: number, rows: number): string {
   const words = new Uint32Array(columns * rows * 3)
-  const points: Points = { encoded: new Float64Array(POINTS * 3), linear: new Float64Array(POINTS * 3), shows: new Uint8Array(POINTS), shown: 0 }
+  const points = SCRATCH_POINTS
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < columns; column++) {
       pointsOf(pixels, columns, rows, column, row, points)

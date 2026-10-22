@@ -107,6 +107,9 @@ let lastSaid: { text: string; language: string } | undefined
 let lastAnswer: { answer: string; request: string } | undefined
 // The sweep across the switch, running while it speaks.
 let sweep: Timer | undefined
+let isNarratorEnabled = false
+let lastCellsText = ''
+let lastCells: string[] = []
 
 /**
  * A language setting as its ISO 639 code (`es-MX` is `es`), checked against the language data the
@@ -481,6 +484,7 @@ function press ($: EngineInterface) {
 async function setEnabled ($: EngineInterface, value?: boolean) {
   let isEnabled = false
   await update($, enabled, now => (isEnabled = value ?? !now))
+  isNarratorEnabled = isEnabled
   if (!isEnabled) silence()
   await $.store.set('enabled', isEnabled)
   return isEnabled
@@ -499,11 +503,14 @@ const widthOf = (text: string) => [...text.replace(/[\uFE0E\uFE0F]/g, '')].lengt
 
 /** A text's cells: one per character, a variation selector kept with the one before it. */
 function cellsOf (text: string) {
+  if (text === lastCellsText) return lastCells
   const cells: string[] = []
   for (const char of text) {
     if (/[\uFE0E\uFE0F]/.test(char) && cells.length > 0) cells[cells.length - 1] += char
     else cells.push(char)
   }
+  lastCellsText = text
+  lastCells = cells
   return cells
 }
 
@@ -540,6 +547,7 @@ export const register: Register = (on, options) => {
   // Whether someone is at the session. Until session.start says otherwise (a mod loaded in the middle
   // of a session does not see it), someone is.
   let isInteractive = true
+  isNarratorEnabled = false
   lastHint = ''
   const speed = Number(options.speed)
   const shortAnswer = Number(options.shortAnswer ?? SHORT_ANSWER)
@@ -563,6 +571,7 @@ export const register: Register = (on, options) => {
       immediate: true
     })
     const isEnabled = (await $.store.get('enabled')) === true
+    isNarratorEnabled = isEnabled
     await update($, enabled, () => isEnabled)
     return next(e)
   })
@@ -613,7 +622,7 @@ export const register: Register = (on, options) => {
 
   on('tool.call', async ($, e, next) => {
     const result = await next(e)
-    if (isInteractive && e.agentId === undefined && actions.length < MAX_ACTIONS && (await read($, enabled))) {
+    if (isInteractive && isNarratorEnabled && e.agentId === undefined && actions.length < MAX_ACTIONS) {
       actions.push(describe(e) + (result.deny !== undefined ? ' (denied)' : result.isError ? ' (failed)' : ''))
     }
     return result
@@ -623,14 +632,14 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // Kept on or off, so `/narrator read` can read it whenever it is asked.
     if (e.agentId === undefined && e.reason === 'answer' && e.answer.trim()) lastAnswer = { answer: e.answer, request }
-    if (isInteractive && e.agentId === undefined && e.reason === 'answer' && e.answer.trim() && (await read($, enabled))) void narrate($, e.answer)
+    if (isInteractive && isNarratorEnabled && e.agentId === undefined && e.reason === 'answer' && e.answer.trim()) void narrate($, e.answer)
     return result
   })
 
   on('command.run', { command: 'recap' }, async ($, e, next) => {
     silence()
     const result = await next(e)
-    if (isInteractive && result.text?.trim() && !NO_RECAP.test(result.text) && (await read($, enabled))) {
+    if (isInteractive && isNarratorEnabled && result.text?.trim() && !NO_RECAP.test(result.text)) {
       actions = []
       void narrate($, result.text)
     }
@@ -643,8 +652,7 @@ export const register: Register = (on, options) => {
   // Where the row is short it gives up "on" or "off", then the language, then "narrator" (or
   // "narrating"): its sign and color still tell.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const isEnabled = await read($, enabled)
-    const speaking = await read($, speech)
+    const [isEnabled, speaking] = await Promise.all([read($, enabled), read($, speech)])
     const step = speaking ? await read($, sweepStep) : 0
     // Beneath: the engine's mode labels, or another plugin's drawing there.
     const beneath = await next(e)

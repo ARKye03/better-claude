@@ -4,10 +4,14 @@
 export function lineOf (states, cursor) {
   /** @type {Set<number>} */
   const line = new Set()
+  if (cursor === null) return line
+  /** @type {Map<number, number | null>} */
+  const parentOf = new Map()
+  for (const state of states) parentOf.set(state.id, state.parent)
   let id = cursor
   while (id !== null && !line.has(id)) {
     line.add(id)
-    id = states.find(state => state.id === id)?.parent ?? null
+    id = parentOf.get(id) ?? null
   }
   return line
 }
@@ -34,18 +38,18 @@ export function merge (saved, live) {
   const merged = [...byCommit.values()].sort((a, b) => a.at - b.at || a.id - b.id)
 
   let max = nextId(merged) - 1
-  /** @type {Set<number>} */
-  const seen = new Set()
+  /** @type {Map<number, State>} */
+  const firstById = new Map()
   /** @type {State[]} */
   const repaired = []
   const states = merged.map(state => {
-    if (!seen.has(state.id)) {
-      seen.add(state.id)
+    const first = firstById.get(state.id)
+    if (!first) {
+      firstById.set(state.id, state)
       return state
     }
     const moved = { ...state, id: ++max }
-    const first = merged.find(one => one.id === state.id)
-    repaired.push(moved, ...(first ? [first] : []))
+    repaired.push(moved, first)
     return moved
   })
   return { states, repaired }

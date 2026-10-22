@@ -84,6 +84,10 @@ export function forget (index) {
   seededFrom.delete(index)
 }
 
+export function isSeeded (index) {
+  return seededFrom.has(index)
+}
+
 /** The working tree as a tree object, through Time Machine's own index: `{ tree, head }`. */
 export async function treeOf (run, repo) {
   const init = { cwd: repo.top, env: indexEnv(repo) }

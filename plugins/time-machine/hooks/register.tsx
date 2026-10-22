@@ -20,7 +20,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, EventOf, Register, RenderElement } from 'claude-code'
 
 import { ICON, activity, ago, digest, digestText, elapsed, shorten, summary, sweep } from '../src/format.js'
-import { MoveBlocked, REF_ROOT, changes, forget, keep, locate, move, pin, prune, treeOf } from '../src/git.js'
+import { MoveBlocked, REF_ROOT, changes, forget, isSeeded, keep, locate, move, pin, prune, treeOf } from '../src/git.js'
 import { lineOf, merge, nextId } from '../src/states.js'
 import { mayWrite } from '../src/tools.js'
 import type { Change, Live, Preview, State } from '../types'
@@ -94,25 +94,29 @@ const refOf = (id: number) => `${REF_ROOT}/${sessionId}/${id}`
 type Saved = { states?: State[]; cursor?: number | null; modelTree?: string | null; jumped?: boolean }
 
 async function save ($: Engine, states: State[], cursor: number | null) {
-  await update($, STATES, () => states)
-  await update($, CURSOR, () => cursor)
-  await $.store.set(`session:${sessionId}`, { at: await $.clock.now(), states, cursor, modelTree, jumped })
+  const at = await $.clock.now()
+  await Promise.all([
+    update($, STATES, () => states),
+    update($, CURSOR, () => cursor),
+    $.store.set(`session:${sessionId}`, { at, states, cursor, modelTree, jumped })
+  ])
 }
 
 /** The working tree as a tree object; an index another session removed is seeded again. */
 async function tree ($: Engine) {
-  if (!await $.fs.exists(repo!.index)) forget(repo!.index)
+  if (isSeeded(repo!.index) && !await $.fs.exists(repo!.index)) forget(repo!.index)
   return treeOf(runner($), repo!)
 }
 
 /** Saves what Claude last saw and whether a jump moved it since, with the states as they are. */
 async function remember ($: Engine) {
-  await save($, await read($, STATES), await read($, CURSOR))
+  const [states, cursor] = await Promise.all([read($, STATES), read($, CURSOR)])
+  await save($, states, cursor)
 }
 
 async function current ($: Engine) {
-  const cursor = await read($, CURSOR)
-  return (await read($, STATES)).find(state => state.id === cursor)
+  const [cursor, states] = await Promise.all([read($, CURSOR), read($, STATES)])
+  return states.find(state => state.id === cursor)
 }
 
 async function addState ($: Engine, now: { tree: string; head: string | null }, kind: State['kind'], label: string, parent: State | undefined, prompt?: string) {
@@ -347,10 +351,8 @@ async function timeline ($: Engine, args: string): Promise<{ text: string }> {
   await exclusive(() => refresh($))
   const states = await read($, STATES)
   if (states.length === 0) return { text: 'Time Machine: no turn has changed files yet.' }
-  const cursor = await read($, CURSOR)
-  const dirty = await read($, DIRTY)
+  const [cursor, dirty, now] = await Promise.all([read($, CURSOR), read($, DIRTY), $.clock.now()])
   const line = lineOf(states, cursor)
-  const now = await $.clock.now()
   const lines = [...states].reverse().map(state => {
     const node = state.id === cursor && !dirty ? '◉' : line.has(state.id) ? '●' : '○'
     const what = digestText(state.files)
@@ -447,11 +449,13 @@ export const register: Register = (on, options) => {
     jumped = saved?.jumped === true
     repo = await locate(runner($), await $.session.cwd(), sessionId)
     await loadStates($, saved)
-    await update($, DIRTY, () => false)
-    await update($, DEPARTED, () => null)
-    await update($, NOTE, () => null)
-    await update($, PREVIEW, () => null)
-    await update($, SELECTED, () => null)
+    await Promise.all([
+      update($, DIRTY, () => false),
+      update($, DEPARTED, () => null),
+      update($, NOTE, () => null),
+      update($, PREVIEW, () => null),
+      update($, SELECTED, () => null)
+    ])
     void exclusive(async () => {
       await pruneStore($)
       if (repo) {
@@ -590,13 +594,17 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
   if (!repo) return <Text dimColor>Not a git repository: nothing to snapshot.</Text>
   const wasOpen = paneOpen
   paneOpen = true
-  const states = await read($, STATES)
-  const cursor = await read($, CURSOR)
-  const dirty = await read($, DIRTY)
-  const selected = await read($, SELECTED)
-  const shown = await read($, PREVIEW)
-  const note = await read($, NOTE)
-  const live = await read($, LIVE)
+  const [states, cursor, dirty, selected, shown, note, live, departed, now] = await Promise.all([
+    read($, STATES),
+    read($, CURSOR),
+    read($, DIRTY),
+    read($, SELECTED),
+    read($, PREVIEW),
+    read($, NOTE),
+    read($, LIVE),
+    read($, DEPARTED),
+    $.clock.now()
+  ])
   if (live) {
     startSpinner($)
     if (!wasOpen) {
@@ -607,8 +615,6 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
       }
     }
   }
-  const departed = await read($, DEPARTED)
-  const now = await $.clock.now()
   const byId = new Map(states.map(state => [state.id, state]))
   const line = lineOf(states, cursor)
   const rows = [...states].reverse()

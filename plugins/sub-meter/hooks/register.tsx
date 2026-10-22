@@ -148,14 +148,17 @@ export const register: Register = (on, options) => {
     tickTimer = undefined
     rotateTimer?.cancel()
     rotateTimer = undefined
-    const saved = await $.store.get('limits')
+    const [saved, storedAt, usage] = await Promise.all([
+      $.store.get('limits'),
+      $.store.get('at'),
+      $.session.usage()
+    ])
     if (Array.isArray(saved)) {
       windowCount = saved.length
       await update($, limits, () => saved as Limit[])
     }
-    seenAt = Number(await $.store.get('at')) || 0
+    seenAt = Number(storedAt) || 0
 
-    const usage = await $.session.usage()
     await remember($, windowsOf(usage.rateLimits))
 
     if (e.isInteractive) {
@@ -192,12 +195,11 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const all = await read($, limits)
     if (all.length === 0) return next(e)
-    const shown = visible(all, display, await read($, view))
+    const index = display === 'rotate' && all.length >= 2 ? await read($, view) : 0
+    const shown = visible(all, display, index)
     if (shown.length === 0) return next(e)
-    await read($, tick) // subscribes this drawing to the countdown tick
-
-    const now = await $.clock.now()
-    const beneath = await next(e)
+    // Subscribes this drawing to the countdown tick alongside reading the clock and beneath node
+    const [, now, beneath] = await Promise.all([read($, tick), $.clock.now(), next(e)])
     const hasBeneath = e.props.modes.length > 0 || !isBlank(beneath)
 
     const windows = shown.map(limit => {
@@ -211,8 +213,9 @@ export const register: Register = (on, options) => {
       return { kind: limit.kind, label, percent, filled, used, reset, short: widthOf(label + used) }
     })
     const below = widthOfNode(beneath, e.props.modes)
-    const room = roomOf(e) - (hasBeneath ? below + SEPARATOR.length : 0) - (holdsPlugin(beneath) ? 0 : AROUND)
-    const given = holdsPlugin(beneath) ? Math.max(0, BENEATH_FLOOR - below) : 0
+    const hasPlugin = holdsPlugin(beneath)
+    const room = roomOf(e) - (hasBeneath ? below + SEPARATOR.length : 0) - (hasPlugin ? 0 : AROUND)
+    const given = hasPlugin ? Math.max(0, BENEATH_FLOOR - below) : 0
     const short = windows.reduce((sum, w) => sum + w.short, (windows.length - 1) * BETWEEN.length)
     const bars = windows.length * (1 + CELLS)
     const resets = windows.reduce((sum, w) => sum + widthOf(w.reset), 0)
