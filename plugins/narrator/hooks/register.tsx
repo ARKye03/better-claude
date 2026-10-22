@@ -49,13 +49,14 @@ const PREVIEW = 'Hello! This is a voice preview for Narrator.'
 // The tool inputs that say best what a call did, in order of preference.
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
+const DISPLAY_NAMES = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' })
 // What /recap prints when it wrote no recap: nothing to say out loud.
 const NO_RECAP = /^(Nothing to recap yet\b|Recap cancelled\.|Couldn't generate a recap\.|\/recap only runs\b|API Error:)/
 
 /** The English name of a language code, or undefined where the runtime's language data does not know it. */
 function languageName (code: string) {
   try {
-    return new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }).of(code)
+    return DISPLAY_NAMES.of(code)
   } catch {
     return undefined
   }
@@ -98,6 +99,7 @@ let linuxSpeech: Promise<LinuxSpeech> | undefined
 let hasWarned = false
 // The hint as last drawn on the terminal, in columns.
 let hintWidth = 0
+let lastHint = ''
 // The language the last narration was said in: a short answer whose words do not tell is read in it.
 let spokenLanguage = ''
 // The last narration said, for `/narrator again`, and the main loop's last answer with its request, for `/narrator read`.
@@ -538,6 +540,7 @@ export const register: Register = (on, options) => {
   // Whether someone is at the session. Until session.start says otherwise (a mod loaded in the middle
   // of a session does not see it), someone is.
   let isInteractive = true
+  lastHint = ''
   const speed = Number(options.speed)
   const shortAnswer = Number(options.shortAnswer ?? SHORT_ANSWER)
   settings = {
@@ -673,9 +676,13 @@ export const register: Register = (on, options) => {
 
   // The hint line beside the mode label: its width tells the switch how much room is left.
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
-    if (e.surface === 'terminal' && widthOf(e.props.hint) !== hintWidth) {
-      hintWidth = widthOf(e.props.hint)
-      $.ui.invalidate('ui.render')
+    if (e.surface === 'terminal' && e.props.hint !== lastHint) {
+      lastHint = e.props.hint
+      const width = widthOf(e.props.hint)
+      if (width !== hintWidth) {
+        hintWidth = width
+        $.ui.invalidate('ui.render')
+      }
     }
     return next(e)
   })

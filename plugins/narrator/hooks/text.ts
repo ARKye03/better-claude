@@ -3,13 +3,13 @@
 // The first line of the narrator's reply: the language's code alone, maybe quoted or bracketed.
 const LANGUAGE_LINE = /^\s*\W*([a-z]{2,3})(?:[-_][a-z0-9]{2,8})?\W*\s*\n([\s\S]*)$/i
 // Common words, to tell the language of a text no model narrated.
-const WORDS: Record<string, string[]> = {
-  en: ['the', 'and', 'is', 'to', 'of', 'it', 'you', 'that', 'with', 'for', 'this', 'are'],
-  es: ['el', 'la', 'que', 'de', 'y', 'en', 'los', 'las', 'es', 'para', 'por', 'una', 'del', 'he'],
-  pt: ['o', 'que', 'não', 'em', 'um', 'uma', 'os', 'você', 'está', 'do', 'da', 'foi'],
-  fr: ['le', 'la', 'les', 'et', 'est', 'des', 'une', 'pour', 'que', 'dans', 'vous', 'pas'],
-  de: ['der', 'die', 'das', 'und', 'ist', 'nicht', 'ich', 'mit', 'für', 'sie', 'den', 'ein'],
-  it: ['il', 'che', 'di', 'è', 'per', 'una', 'con', 'non', 'sono', 'gli', 'della', 'ho']
+const WORDS: Record<string, Set<string>> = {
+  en: new Set(['the', 'and', 'is', 'to', 'of', 'it', 'you', 'that', 'with', 'for', 'this', 'are']),
+  es: new Set(['el', 'la', 'que', 'de', 'y', 'en', 'los', 'las', 'es', 'para', 'por', 'una', 'del', 'he']),
+  pt: new Set(['o', 'que', 'não', 'em', 'um', 'uma', 'os', 'você', 'está', 'do', 'da', 'foi']),
+  fr: new Set(['le', 'la', 'les', 'et', 'est', 'des', 'une', 'pour', 'que', 'dans', 'vous', 'pas']),
+  de: new Set(['der', 'die', 'das', 'und', 'ist', 'nicht', 'ich', 'mit', 'für', 'sie', 'den', 'ein']),
+  it: new Set(['il', 'che', 'di', 'è', 'per', 'una', 'con', 'non', 'sono', 'gli', 'della', 'ho'])
 }
 
 // A commit's hash, which a synthesizer reads letter by letter: hex digits, a number and a letter among them.
@@ -59,7 +59,8 @@ export function guessLanguage (text: string) {
   let best = ''
   let most = 2
   for (const [language, common] of Object.entries(WORDS)) {
-    const count = words.filter(word => common.includes(word)).length
+    let count = 0
+    for (const word of words) if (common.has(word)) count++
     if (count > most) [best, most] = [language, count]
   }
   return best

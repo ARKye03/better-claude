@@ -34,6 +34,11 @@ const BENEATH_FLOOR = 10
 
 // The hint as last drawn on the terminal, in columns.
 let hintWidth = 0
+let lastHint = ''
+let lastTidied = ''
+let windowCount = 0
+let tickTimer: { cancel: () => void } | undefined
+let rotateTimer: { cancel: () => void } | undefined
 
 /** The subscription windows the meter shows, in order, from what the engine measured. */
 const windowsOf = (rateLimits: readonly SessionRateLimit[]): Limit[] =>
@@ -91,6 +96,7 @@ let seenAt = 0
 async function remember ($: EngineInterface, found: Limit[]) {
   if (found.length === 0) return
   seenAt = await $.clock.now()
+  windowCount = found.length
   await update($, limits, () => found)
   await $.store.set('limits', found)
   await $.store.set('at', seenAt) // after the limits, so a reader that sees the new time finds the new limits
@@ -103,6 +109,7 @@ async function syncFromStore ($: EngineInterface) {
   const saved = await $.store.get('limits')
   if (!Array.isArray(saved)) return
   seenAt = at
+  windowCount = saved.length
   await update($, limits, () => saved as Limit[])
 }
 
@@ -115,6 +122,9 @@ function visible (all: Limit[], display: string, index: number): Limit[] {
 
 export const register: Register = (on, options) => {
   seenAt = 0
+  windowCount = 0
+  lastHint = ''
+  lastTidied = ''
   const hideCycleHint = options.hideCycleHint !== false
   const hideInterruptHint = options.hideInterruptHint !== false
   const rotateSeconds = Number(options.rotateSeconds)
@@ -134,19 +144,40 @@ export const register: Register = (on, options) => {
   }
 
   on('session.start', async ($, e, next) => {
+    tickTimer?.cancel()
+    tickTimer = undefined
+    rotateTimer?.cancel()
+    rotateTimer = undefined
     const saved = await $.store.get('limits')
-    if (Array.isArray(saved)) await update($, limits, () => saved as Limit[])
+    if (Array.isArray(saved)) {
+      windowCount = saved.length
+      await update($, limits, () => saved as Limit[])
+    }
     seenAt = Number(await $.store.get('at')) || 0
 
     const usage = await $.session.usage()
     await remember($, windowsOf(usage.rateLimits))
 
-    // Another session's reading shows up within TICK_MS of being stored.
-    $.clock.every(TICK_MS, () => {
-      void syncFromStore($).catch(() => {}) // a failed read keeps the reading on screen
-      void update($, tick, n => n + 1)
-    })
-    if (display === 'rotate') $.clock.every(rotateMs, () => { void update($, view, n => n + 1) })
+    if (e.isInteractive) {
+      // Another session's reading shows up within TICK_MS of being stored.
+      tickTimer = $.clock.every(TICK_MS, () => {
+        void syncFromStore($).catch(() => {}) // a failed read keeps the reading on screen
+        if (windowCount > 0) void update($, tick, n => n + 1)
+      })
+      if (display === 'rotate') {
+        rotateTimer = $.clock.every(rotateMs, () => {
+          if (windowCount >= 2) void update($, view, n => n + 1)
+        })
+      }
+    }
+    return next(e)
+  })
+
+  on('session.end', ($, e, next) => {
+    tickTimer?.cancel()
+    tickTimer = undefined
+    rotateTimer?.cancel()
+    rotateTimer = undefined
     return next(e)
   })
 
@@ -215,10 +246,17 @@ export const register: Register = (on, options) => {
   // The engine draws the mode label itself; the hint line after it starts with "(shift+tab to cycle)",
   // and while Claude works holds "esc to interrupt". Its width tells the meter how much room is left.
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
-    const hint = tidy(e.props.hint)
-    if (e.surface === 'terminal' && widthOf(hint) !== hintWidth) {
-      hintWidth = widthOf(hint)
-      $.ui.invalidate('ui.render')
+    if (e.props.hint !== lastHint) {
+      lastHint = e.props.hint
+      lastTidied = tidy(e.props.hint)
+    }
+    const hint = lastTidied
+    if (e.surface === 'terminal') {
+      const width = widthOf(hint)
+      if (width !== hintWidth) {
+        hintWidth = width
+        $.ui.invalidate('ui.render')
+      }
     }
     return hint === e.props.hint ? next(e) : next({ ...e, props: { ...e.props, hint } })
   })

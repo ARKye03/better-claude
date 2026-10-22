@@ -65,8 +65,10 @@ let sessionId = ''
 let keepMs = 7 * DAY_MS
 let turn: Turn | null = null
 // The spinner of the running turn; a refresh of its files already waiting in the chain, so a
-// burst of edits reads the tree once
+// burst of edits reads the tree once. Both run only while a pane is open.
 let spinner: { cancel: () => void } | null = null
+let paneOpen = false
+let liveDoing = activity(null)
 let liveQueued = false
 let ringAt: string | undefined
 // The rows a docked pane shows, newest first, by surface: each surface draws a window of its own
@@ -340,6 +342,7 @@ async function timeline ($: Engine, args: string): Promise<{ text: string }> {
     return { text: await exclusive(() => goTo($, id)) }
   }
   await $.ui.open({ id: PANE, title: 'Time Machine' })
+  paneOpen = true
   if (!repo) return { text: 'Time Machine: this folder is not a git repository.' }
   await exclusive(() => refresh($))
   const states = await read($, STATES)
@@ -366,23 +369,30 @@ async function liveRefresh ($: Engine) {
   await update($, LIVE, live => live ? { ...live, files } : live)
 }
 
-/**
- * Starts the running row: at once on the prompt, its spinner ticking until the turn ends. It
- * ticks whether the pane shows or not (a tick only redraws what reads it), so a pane opened
- * before a hot reload, or by a session resumed, still moves.
- */
-async function liveStart ($: Engine, label: string, prompt: string) {
-  spinner?.cancel()
-  const at = await $.clock.now()
-  await update($, LIVE, () => ({ label, prompt, at, files: [], doing: activity(null), frame: 0 }))
+function startSpinner ($: Engine) {
+  if (spinner) return
   spinner = $.clock.every(SPIN_MS, () => {
     void update($, LIVE, live => live ? { ...live, frame: live.frame + 1 } : live)
   })
 }
 
+/**
+ * Starts the running row: at once on the prompt, its spinner ticking while the pane is open
+ * (or starting as soon as the pane renders).
+ */
+async function liveStart ($: Engine, label: string, prompt: string) {
+  spinner?.cancel()
+  spinner = null
+  liveDoing = activity(null)
+  const at = await $.clock.now()
+  await update($, LIVE, () => ({ label, prompt, at, files: [], doing: liveDoing, frame: 0 }))
+  if (paneOpen) startSpinner($)
+}
+
 async function liveEnd ($: Engine) {
   spinner?.cancel()
   spinner = null
+  liveDoing = activity(null)
   await update($, LIVE, () => null)
 }
 
@@ -423,6 +433,10 @@ export const register: Register = (on, options) => {
       argumentHint: '[n | undo | redo]'
     })
     sessionId = await $.session.id()
+    spinner?.cancel()
+    spinner = null
+    paneOpen = false
+    liveDoing = activity(null)
     turn = null
     writing = 0
     ringAt = undefined
@@ -451,6 +465,9 @@ export const register: Register = (on, options) => {
   // The session's index goes with it (where `rm` cannot start, it stays: a file of the size of
   // the repository's index)
   on('session.end', async ($, e, next) => {
+    spinner?.cancel()
+    spinner = null
+    paneOpen = false
     if (repo) await $.process.run(['rm', '-f', repo.index]).catch(() => undefined)
     return next(e)
   })
@@ -480,7 +497,8 @@ export const register: Register = (on, options) => {
     // Once the turn has its snapshot, a tool never waits behind the chain
     if (mutates && !turn?.start) await exclusive(() => startTurn($))
     // The running row says what Claude is at while the tool runs, and that it thinks after
-    await update($, LIVE, live => live ? { ...live, doing: activity(e.tool, e as unknown as Record<string, unknown>) } : live).catch(() => undefined)
+    liveDoing = activity(e.tool, e as unknown as Record<string, unknown>)
+    if (paneOpen) await update($, LIVE, live => live ? { ...live, doing: liveDoing } : live).catch(() => undefined)
     if (mutates) writing++
     let result
     try {
@@ -488,9 +506,10 @@ export const register: Register = (on, options) => {
     } finally {
       if (mutates) writing--
     }
-    await update($, LIVE, live => live ? { ...live, doing: activity(null) } : live).catch(() => undefined)
-    // A background agent's turn has no running row to fill
-    if (mutates && turn?.start && !turn.outside && !liveQueued) {
+    liveDoing = activity(null)
+    if (paneOpen) await update($, LIVE, live => live ? { ...live, doing: liveDoing } : live).catch(() => undefined)
+    // A background agent's turn has no running row to fill; a closed pane reads no intermediate trees
+    if (paneOpen && mutates && turn?.start && !turn.outside && !liveQueued) {
       liveQueued = true
       void exclusive(() => liveRefresh($)).catch(() => undefined)
     }
@@ -555,6 +574,13 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  on('ui.close', { id: PANE }, ($, e, next) => {
+    paneOpen = false
+    spinner?.cancel()
+    spinner = null
+    return next(e)
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => drawPane($, e))
 }
 
@@ -562,6 +588,8 @@ export const register: Register = (on, options) => {
 async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
   const { Box, Button, Text } = $.ui.resolve(e)
   if (!repo) return <Text dimColor>Not a git repository: nothing to snapshot.</Text>
+  const wasOpen = paneOpen
+  paneOpen = true
   const states = await read($, STATES)
   const cursor = await read($, CURSOR)
   const dirty = await read($, DIRTY)
@@ -569,12 +597,23 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
   const shown = await read($, PREVIEW)
   const note = await read($, NOTE)
   const live = await read($, LIVE)
+  if (live) {
+    startSpinner($)
+    if (!wasOpen) {
+      if (live.doing !== liveDoing) void update($, LIVE, cur => cur ? { ...cur, doing: liveDoing } : cur).catch(() => undefined)
+      if (turn?.start && !turn.outside && !liveQueued) {
+        liveQueued = true
+        void exclusive(() => liveRefresh($)).catch(() => undefined)
+      }
+    }
+  }
   const departed = await read($, DEPARTED)
   const now = await $.clock.now()
+  const byId = new Map(states.map(state => [state.id, state]))
   const line = lineOf(states, cursor)
   const rows = [...states].reverse()
   const columns = Math.max(20, e.props.bodyColumns)
-  const chosen = states.find(state => state.id === (selected ?? cursor))
+  const chosen = byId.get((selected ?? cursor) as number)
 
   // Docked, the pane has a height of its own: the footer is pinned to its bottom and the list
   // shows the window of rows around the chosen one. Inline, the pane is as tall as its tree
@@ -630,7 +669,7 @@ async function drawPane ($: Engine, e: RenderOf<'Pane'>) {
   }
   // Where things stand: a label, the state, and how long ago it was
   const where = (key: string, label: string, color: string, id: number | null, { instead, when = true }: { instead?: string; when?: boolean } = {}) => {
-    const state = states.find(one => one.id === id)
+    const state = id === null ? undefined : byId.get(id)
     return (
       <Box key={key} flexDirection="row" gap={1} flexShrink={0}>
         <Text dimColor>{label}</Text>

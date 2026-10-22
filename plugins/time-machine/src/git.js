@@ -59,8 +59,10 @@ async function git (run, argv, init = {}) {
  */
 export async function locate (run, cwd, session) {
   try {
-    const top = await git(run, ['rev-parse', '--show-toplevel'], { cwd })
-    const gitDir = await git(run, ['rev-parse', '--absolute-git-dir'], { cwd })
+    const [top, gitDir] = await Promise.all([
+      git(run, ['rev-parse', '--show-toplevel'], { cwd }),
+      git(run, ['rev-parse', '--absolute-git-dir'], { cwd })
+    ])
     return { top, gitDir, index: `${gitDir}/time-machine-${session}.index` }
   } catch {
     return null
@@ -167,8 +169,10 @@ async function every (run, repo, argv, { stdin, okCodes = [0] } = {}) {
 /** What changed from tree `a` to tree `b`: `[{ path, status, added, removed }]`. */
 export async function changes (run, repo, a, b) {
   if (a === b) return []
-  const numstat = await whole(run, repo, ['diff', '--numstat', '--no-renames', '-z', a, b])
-  const status = await whole(run, repo, ['diff', '--name-status', '--no-renames', '-z', a, b])
+  const [numstat, status] = await Promise.all([
+    whole(run, repo, ['diff', '--numstat', '--no-renames', '-z', a, b]),
+    whole(run, repo, ['diff', '--name-status', '--no-renames', '-z', a, b])
+  ])
   const statusOf = new Map()
   const parts = status.split('\0').filter(Boolean)
   for (let i = 0; i + 1 < parts.length; i += 2) statusOf.set(parts[i + 1], parts[i])
