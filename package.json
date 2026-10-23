@@ -30,7 +30,7 @@
     "validate": "claude plugin validate . && claude plugin validate ./plugins/after && claude plugin validate ./plugins/use-haiku && claude plugin validate ./plugins/think-hard && claude plugin validate ./plugins/token-meter && claude plugin validate ./plugins/sub-meter && claude plugin validate ./plugins/context-meter && claude plugin validate ./plugins/image-preview && claude plugin validate ./plugins/commit && claude plugin validate ./plugins/narrator && claude plugin validate ./plugins/time-machine",
     "eval": "node plugins/after/scripts/eval-haiku.js",
     "readme": "node scripts/readme-table.js",
-    "prepare": "husky"
+    "prepare": "node scripts/prepare.js"
   },
   "devDependencies": {
     "husky": "^9.1.7"
