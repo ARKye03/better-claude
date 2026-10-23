@@ -4,21 +4,23 @@
 
 Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plugins):
 
+<!-- plugins:start -->
 | Plugin | What it does | Folder |
 | --- | --- | --- |
-| **Image Preview** | Hover a pasted `[Image #N]` to see the picture, while you write and on the prompts you sent. | [`plugins/image-preview/`](plugins/image-preview/README.md) |
-| **Sub Meter** | Subscription usage at the bottom right: the 5-hour and weekly windows, as a bar. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
-| **Context Meter** | The session's context window fill, right above the prompt: yellow when it is time to `/compact`, red when a new session is better. | [`plugins/context-meter/`](plugins/context-meter/README.md) |
-| **Commit** | `/commit` asks commit + push, commit only or a new branch, then splits your changes into Conventional Commits, on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
-| **Narrator** | Click `⏸︎ narrator off` in the footer, or `/narrator`, and Claude tells you out loud what it did after each turn, in your language, with the best free voice your system has. | [`plugins/narrator/`](plugins/narrator/README.md) |
-| **Time Machine** | Every turn that changes files is a git snapshot: `/timeline` puts the files back as before any turn, Bash changes included. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
+| **Commit** | `/commit` asks whether to commit and push, only commit, or commit on a new branch, then splits your changes into Conventional Commits, one per logical group, on the branch you are on. Runs on Haiku 5.5. | [`plugins/commit/`](plugins/commit/README.md) |
+| **Context Meter** | The session's context window fill, right above the prompt: gray while there is room, yellow when it is time to `/compact`, red when a new session is better. | [`plugins/context-meter/`](plugins/context-meter/README.md) |
+| **Image Preview** | Hover a pasted `[Image #N]` to see the picture: above the prompt while you write, and on the prompts you sent. | [`plugins/image-preview/`](plugins/image-preview/README.md) |
+| **Narrator** | Click ⏸︎ narrator off in the footer, or `/narrator`, and after each turn Claude tells you out loud what it did, in your language, with the best free voice your system has: Siri's on macOS, Narrator's on Windows, speech-dispatcher's on Linux. | [`plugins/narrator/`](plugins/narrator/README.md) |
+| **Sub Meter** | Your subscription usage at the bottom right of Claude Code: the 5-hour and weekly windows, taking turns, side by side or fixed on one of them. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
+| **Time Machine** | Every turn that changes files is a git snapshot off your history: `/timeline` shows them and puts the working tree back as it was before any turn, Bash changes included. Undoable. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
 
 <!-- Hidden until they are on the web:
-| **After** | A prompt queue: `/after <task>` runs it when Claude finishes, without steering it. | [`plugins/after/`](plugins/after/README.md) |
-| **Use Haiku** | Start a prompt with `_` and that turn runs on Haiku. | [`plugins/use-haiku/`](plugins/use-haiku/README.md) |
-| **Think Hard** | Start a prompt with `+` and that turn thinks at max effort. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
-| **Token Meter** | Each turn's tokens and the session total, in color under the prompt. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
+| **After** | A real prompt queue for Claude Code: `/after <task>` runs it after the current task, without steering. See, reorder and remove queued tasks from a band and a live pane, in plain language. | [`plugins/after/`](plugins/after/README.md) |
+| **Think Hard** | Start a prompt with + and that turn thinks at max effort. Other prompts keep the session's effort. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
+| **Token Meter** | Each turn's tokens and the session's running total, in color at the end of the hint line under the prompt. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
+| **Use Haiku** | Start a prompt with _ and that turn runs on Haiku, shown as you type, while it runs and under the answer. | [`plugins/use-haiku/`](plugins/use-haiku/README.md) |
 -->
+<!-- plugins:end -->
 
 ## Install
 

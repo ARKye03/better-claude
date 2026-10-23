@@ -1,0 +1,5 @@
+npm run readme --silent
+if ! git diff --quiet HEAD -- README.md; then
+  echo "README.md plugin table was out of date and has been regenerated. Commit it, then push again."
+  exit 1
+fi

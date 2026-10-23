@@ -28,6 +28,11 @@
     "test:watch": "node --test --watch \"plugins/after/test/*.test.js\"",
     "typecheck": "npx -y -p typescript@7 tsc -p plugins/after",
     "validate": "claude plugin validate . && claude plugin validate ./plugins/after && claude plugin validate ./plugins/use-haiku && claude plugin validate ./plugins/think-hard && claude plugin validate ./plugins/token-meter && claude plugin validate ./plugins/sub-meter && claude plugin validate ./plugins/context-meter && claude plugin validate ./plugins/image-preview && claude plugin validate ./plugins/commit && claude plugin validate ./plugins/narrator && claude plugin validate ./plugins/time-machine",
-    "eval": "node plugins/after/scripts/eval-haiku.js"
+    "eval": "node plugins/after/scripts/eval-haiku.js",
+    "readme": "node scripts/readme-table.js",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
