@@ -16,9 +16,9 @@ Plugins and mods for Claude Code by midudev, one per folder in [`plugins/`](plug
 
 <!-- Hidden until they are on the web:
 | **After** | A real prompt queue for Claude Code: `/after <task>` runs it after the current task, without steering. See, reorder and remove queued tasks from a band and a live pane, in plain language. | [`plugins/after/`](plugins/after/README.md) |
-| **Think Hard** | Start a prompt with + and that turn thinks at max effort. Other prompts keep the session's effort. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
+| **Think Hard** | Start a prompt with `+` and that turn thinks at max effort. Other prompts keep the session's effort. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
 | **Token Meter** | Each turn's tokens and the session's running total, in color at the end of the hint line under the prompt. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
-| **Use Haiku** | Start a prompt with _ and that turn runs on Haiku, shown as you type, while it runs and under the answer. | [`plugins/use-haiku/`](plugins/use-haiku/README.md) |
+| **Use Haiku** | Start a prompt with `_` and that turn runs on Haiku, shown as you type, while it runs and under the answer. | [`plugins/use-haiku/`](plugins/use-haiku/README.md) |
 -->
 <!-- plugins:end -->
 
