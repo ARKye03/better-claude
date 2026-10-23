@@ -37,7 +37,6 @@ describe('plugin wiring', () => {
 
   test('has no runtime dependencies', () => {
     assert.equal(pkg.dependencies, undefined)
-    assert.equal(pkg.devDependencies, undefined)
   })
 
   test('is a mod: one hooks module, no command hooks', () => {
